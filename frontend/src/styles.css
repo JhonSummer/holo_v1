@@ -33,7 +33,10 @@ body {
 
 .top-left { top: 16px; left: 16px; max-width: 320px; }
 .top-left .panel { padding: 14px 16px; }
-.title { font-family: 'Space Grotesk', sans-serif; font-size: 18px; font-weight: 700; letter-spacing: 0.3px; }
+.title {
+  font-family: 'Space Grotesk', sans-serif; font-size: 18px; font-weight: 700; letter-spacing: 0.3px;
+  display: flex; align-items: center; gap: 8px;
+}
 .subtitle { font-size: 12px; opacity: 0.65; margin-top: 2px; }
 
 .pod-list { margin-top: 12px; display: flex; flex-direction: column; gap: 6px; }

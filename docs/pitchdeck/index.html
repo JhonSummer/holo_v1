@@ -4,6 +4,15 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Holodeck — Step inside the video</title>
+<link rel="icon" href="/favicon.ico" sizes="any">
+<link rel="icon" href="/favicon.svg" type="image/svg+xml">
+<meta name="theme-color" content="#05060a">
+<meta property="og:title" content="Holodeck — step inside the video">
+<meta property="og:description" content="Holodeck turns a video into a place. The pitch: an open format, a player that is a model, and a grammar for talking to video.">
+<meta property="og:image" content="https://myholodeck.app/og-card.png">
+<meta property="og:url" content="https://myholodeck.app/pitchdeck/">
+<meta property="og:type" content="website">
+<meta name="twitter:card" content="summary_large_image">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@500;700&family=IBM+Plex+Mono:wght@400;500&display=swap" rel="stylesheet">
@@ -56,6 +65,22 @@
   h2{font-size:clamp(30px,4.2vw,56px);line-height:1.06;margin-bottom:18px}
   .lede{font-size:clamp(16px,1.55vw,21px);line-height:1.55;color:var(--dim);max-width:58ch}
   .accent-s{color:var(--signal)} .accent-p{color:var(--pulse)} .accent-e{color:var(--ember)}
+
+  /* ---------- brand (see branding/) ---------- */
+  .grad{
+    background:linear-gradient(96deg,#67E8F9,#22D3EE,#2E7CF6,#6366F1,#8B5CF6,#D946EF,#F472B6);
+    -webkit-background-clip:text;background-clip:text;color:transparent;
+  }
+  .brand{
+    display:flex;align-items:center;gap:18px;margin-bottom:34px;
+  }
+  .brand-mark{flex:none}
+  .brand .word{
+    font-family:var(--mono);font-size:13px;letter-spacing:.42em;
+    color:var(--ink);text-transform:uppercase;
+  }
+  .brand .tick{color:var(--faint);letter-spacing:.22em}
+  .scrub .mark-logo{display:inline-block;vertical-align:-5px;margin-right:9px}
 
   /* ---------- slide 1 ---------- */
   #s1{z-index:1}
@@ -158,11 +183,28 @@
   /* ---------- scrubber (signature) ---------- */
   .scrub{
     position:fixed;left:0;right:0;bottom:0;height:64px;z-index:10;
-    display:grid;grid-template-columns:auto 1fr auto;align-items:center;gap:26px;
+    display:grid;grid-template-columns:auto auto 1fr auto auto;align-items:center;gap:22px;
     padding:0 min(8vw,110px);
     border-top:1px solid var(--line);
     background:rgba(5,6,10,.85);backdrop-filter:blur(8px);
   }
+  .nav-btn{
+    font-family:var(--mono);font-size:17px;line-height:1;
+    width:46px;height:38px;border-radius:9px;
+    border:1px solid var(--line);background:var(--card);color:var(--dim);
+    cursor:pointer;
+    transition:border-color .25s,color .25s,background .25s,box-shadow .25s,opacity .25s;
+  }
+  .nav-btn:hover:not(:disabled){border-color:var(--signal);color:var(--ink)}
+  .nav-btn:focus-visible{outline:2px solid var(--signal);outline-offset:3px}
+  .nav-btn:disabled{opacity:.25;cursor:default}
+  .nav-next:not(:disabled){
+    background:var(--signal);border-color:var(--signal);color:var(--void);
+    box-shadow:0 0 16px rgba(126,160,255,.55);
+    animation:nav-glow 2.4s ease-in-out infinite;
+  }
+  .nav-next:hover:not(:disabled){background:#9ab5ff;border-color:#9ab5ff;color:var(--void)}
+  @keyframes nav-glow{50%{box-shadow:0 0 5px rgba(126,160,255,.35)}}
   .timecode,.beat-label{
     font-family:var(--mono);font-size:12px;letter-spacing:.14em;color:var(--faint);
     white-space:nowrap;
@@ -201,14 +243,15 @@
     .slide{padding:9vh 6vw;overflow-y:auto;justify-content:flex-start}
     .drivers,.problems,.nownext{grid-template-columns:1fr}
     .tile{grid-template-columns:1fr;gap:10px}
-    .scrub{padding:0 6vw;gap:16px}
+    .scrub{padding:0 6vw;gap:12px}
     .beat-label{display:none}
+    .nav-btn{width:42px;height:36px}
   }
 
   /* ---------- motion & print ---------- */
   @media (prefers-reduced-motion:reduce){
     .slide,.fill,.playhead{transition:none}
-    .live-dot,.playhead{animation:none}
+    .live-dot,.playhead,.nav-next{animation:none}
   }
   @media print{
     body{overflow:visible;background:var(--void)}
@@ -218,6 +261,7 @@
       min-height:100vh;page-break-after:always;
     }
     .scrub,.hint{display:none}
+    .grad{background:none;color:var(--signal)}
   }
 </style>
 </head>
@@ -228,12 +272,51 @@
   <!-- BEAT 01 · COLD OPEN -->
   <section class="slide on" id="s1" data-beat="COLD OPEN" role="group" aria-roledescription="slide" aria-label="1 of 5">
     <canvas id="stars" aria-hidden="true"></canvas>
-    <p class="eyebrow">Holodeck <span class="tick">·</span> 2026</p>
-    <h1>Step inside <span class="accent-s">the video.</span></h1>
+    <div class="brand">
+      <svg class="brand-mark" width="64" height="64" viewBox="33.98 4.41 69.36 69.36" role="img" aria-label="Holodeck mark">
+        <defs>
+          <linearGradient id="d1" gradientUnits="userSpaceOnUse" x1="15" y1="105" x2="105" y2="15">
+            <stop offset="0%" stop-color="#67E8F9" stop-opacity="0"/>
+            <stop offset="30%" stop-color="#67E8F9"/>
+            <stop offset="65%" stop-color="#22D3EE"/>
+            <stop offset="100%" stop-color="#2E7CF6"/>
+          </linearGradient>
+          <linearGradient id="d2" gradientUnits="userSpaceOnUse" x1="27" y1="93" x2="93" y2="27">
+            <stop offset="0%" stop-color="#38BDF8" stop-opacity="0"/>
+            <stop offset="30%" stop-color="#38BDF8"/>
+            <stop offset="65%" stop-color="#6366F1"/>
+            <stop offset="100%" stop-color="#8B5CF6"/>
+          </linearGradient>
+          <linearGradient id="d3" gradientUnits="userSpaceOnUse" x1="38.5" y1="81.5" x2="81.5" y2="38.5">
+            <stop offset="0%" stop-color="#A855F7" stop-opacity="0"/>
+            <stop offset="30%" stop-color="#A855F7"/>
+            <stop offset="65%" stop-color="#D946EF"/>
+            <stop offset="100%" stop-color="#F472B6"/>
+          </linearGradient>
+          <radialGradient id="dCore" cx="38%" cy="34%" r="72%">
+            <stop offset="0%" stop-color="#FFFFFF"/>
+            <stop offset="42%" stop-color="#EBD6FF"/>
+            <stop offset="100%" stop-color="#9333EA"/>
+          </radialGradient>
+          <radialGradient id="dHalo" cx="50%" cy="50%" r="50%">
+            <stop offset="0%" stop-color="#C084FC" stop-opacity="0.5"/>
+            <stop offset="55%" stop-color="#8B5CF6" stop-opacity="0.14"/>
+            <stop offset="100%" stop-color="#8B5CF6" stop-opacity="0"/>
+          </radialGradient>
+        </defs>
+        <circle cx="60" cy="60" r="26" fill="url(#dHalo)"/>
+        <path d="M 96.144 33.194 A 45 45 0 0 0 66.603 15.487" fill="none" stroke="url(#d1)" stroke-width="8.5" stroke-linecap="round"/>
+        <path d="M 77.518 32.034 A 33 33 0 0 0 48.477 29.077" fill="none" stroke="url(#d2)" stroke-width="10" stroke-linecap="round"/>
+        <path d="M 62.457 38.641 A 21.5 21.5 0 0 0 42.731 47.192" fill="none" stroke="url(#d3)" stroke-width="11.5" stroke-linecap="round"/>
+        <circle cx="60" cy="60" r="7" fill="url(#dCore)"/>
+      </svg>
+      <p class="word">Holodeck <span class="tick">·</span> 2026</p>
+    </div>
+    <h1>Step inside <span class="grad">the video.</span></h1>
     <p class="lede">The world learns, imagines, and remembers through video — and video is
     still a one-way stream. Holodeck turns it into a place: pause it, question it,
     change it, move through it.</p>
-    <p class="hint"><kbd>→</kbd> to advance &nbsp;·&nbsp; <kbd>P</kbd> to print</p>
+    <p class="hint">click anywhere or <kbd>→</kbd> to advance &nbsp;·&nbsp; <kbd>P</kbd> to print</p>
   </section>
 
   <!-- BEAT 02 · THE SHIFT -->
@@ -348,14 +431,36 @@
         </ul>
       </div>
     </div>
-    <p class="close">The holodeck was never a screen.<br><span class="accent-s">Neither is this.</span></p>
+    <p class="close">The holodeck was never a screen.<br><span class="grad">Neither is this.</span></p>
   </section>
 
 </main>
 
 <!-- signature: video-player scrubber as navigation -->
 <footer class="scrub" aria-label="Deck navigation">
-  <p class="timecode"><b id="tc-now">00:01</b> / 00:05</p>
+  <p class="timecode">
+    <svg class="mark-logo" width="18" height="18" viewBox="29.74 0.30 77.90 77.90" aria-hidden="true">
+      <defs>
+        <linearGradient id="s1g" gradientUnits="userSpaceOnUse" x1="15" y1="105" x2="105" y2="15">
+          <stop offset="0%" stop-color="#67E8F9"/><stop offset="65%" stop-color="#22D3EE"/><stop offset="100%" stop-color="#2E7CF6"/>
+        </linearGradient>
+        <linearGradient id="s2g" gradientUnits="userSpaceOnUse" x1="27" y1="93" x2="93" y2="27">
+          <stop offset="0%" stop-color="#38BDF8"/><stop offset="65%" stop-color="#6366F1"/><stop offset="100%" stop-color="#8B5CF6"/>
+        </linearGradient>
+        <linearGradient id="s3g" gradientUnits="userSpaceOnUse" x1="38.5" y1="81.5" x2="81.5" y2="38.5">
+          <stop offset="0%" stop-color="#A855F7"/><stop offset="65%" stop-color="#D946EF"/><stop offset="100%" stop-color="#F472B6"/>
+        </linearGradient>
+        <radialGradient id="sCg" cx="38%" cy="34%" r="72%">
+          <stop offset="0%" stop-color="#FFFFFF"/><stop offset="42%" stop-color="#EBD6FF"/><stop offset="100%" stop-color="#9333EA"/>
+        </radialGradient>
+      </defs>
+      <path d="M 96.144 33.194 A 45 45 0 0 0 66.603 15.487" fill="none" stroke="url(#s1g)" stroke-width="10" stroke-linecap="round"/>
+      <path d="M 77.518 32.034 A 33 33 0 0 0 48.477 29.077" fill="none" stroke="url(#s2g)" stroke-width="11.5" stroke-linecap="round"/>
+      <path d="M 62.457 38.641 A 21.5 21.5 0 0 0 42.731 47.192" fill="none" stroke="url(#s3g)" stroke-width="13" stroke-linecap="round"/>
+      <circle cx="60" cy="60" r="8" fill="url(#sCg)"/>
+    </svg>
+    <b id="tc-now">00:01</b> / 00:05</p>
+  <button class="nav-btn nav-prev" id="prev" aria-label="Previous slide">←</button>
   <div class="track" id="track">
     <div class="rail"></div>
     <div class="fill" id="fill"></div>
@@ -366,6 +471,7 @@
     <button class="mark" data-i="4" aria-label="Beat 5: Now and next"></button>
     <div class="playhead" id="playhead"></div>
   </div>
+  <button class="nav-btn nav-next" id="next" aria-label="Next slide">→</button>
   <p class="beat-label" id="beat-label">BEAT 01 · COLD OPEN</p>
 </footer>
 
@@ -377,6 +483,8 @@
   const playhead = document.getElementById('playhead');
   const tcNow = document.getElementById('tc-now');
   const beatLabel = document.getElementById('beat-label');
+  const prevBtn = document.getElementById('prev');
+  const nextBtn = document.getElementById('next');
   const N = slides.length;
   let cur = 0;
 
@@ -392,7 +500,19 @@
     playhead.style.left = pos(cur) + '%';
     tcNow.textContent = '00:0' + (cur + 1);
     beatLabel.textContent = 'BEAT 0' + (cur + 1) + ' · ' + slides[cur].dataset.beat;
+    prevBtn.disabled = cur === 0;
+    nextBtn.disabled = cur === N - 1;
   }
+
+  prevBtn.addEventListener('click', () => go(cur - 1));
+  nextBtn.addEventListener('click', () => go(cur + 1));
+
+  // click anywhere on a slide advances (links and selections excluded)
+  document.querySelector('.deck').addEventListener('click', e => {
+    if (e.target.closest('a')) return;
+    if (getSelection().toString()) return;
+    go(cur + 1);
+  });
 
   addEventListener('keydown', e => {
     if (e.key === 'ArrowRight' || e.key === ' ' || e.key === 'PageDown') { e.preventDefault(); go(cur + 1); }

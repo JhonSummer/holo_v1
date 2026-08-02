@@ -1,5 +1,47 @@
 // Shared inline SVG icons (stroke = currentColor so buttons tint them).
 
+// Brand mark: three concentric arcs orbiting a luminous core (see branding/).
+// This is the small-size drawing — thicker strokes, no taper — which the brand
+// sheet prescribes below 20px; both in-app uses sit around that size.
+export function HoloMark({ size = 20 }: { size?: number }) {
+  return (
+    <svg
+      width={size}
+      height={size}
+      viewBox="29.74 0.30 77.90 77.90"
+      aria-hidden="true"
+      style={{ flexShrink: 0 }}
+    >
+      <defs>
+        <linearGradient id="hm1" gradientUnits="userSpaceOnUse" x1="15" y1="105" x2="105" y2="15">
+          <stop offset="0%" stopColor="#67E8F9" />
+          <stop offset="65%" stopColor="#22D3EE" />
+          <stop offset="100%" stopColor="#2E7CF6" />
+        </linearGradient>
+        <linearGradient id="hm2" gradientUnits="userSpaceOnUse" x1="27" y1="93" x2="93" y2="27">
+          <stop offset="0%" stopColor="#38BDF8" />
+          <stop offset="65%" stopColor="#6366F1" />
+          <stop offset="100%" stopColor="#8B5CF6" />
+        </linearGradient>
+        <linearGradient id="hm3" gradientUnits="userSpaceOnUse" x1="38.5" y1="81.5" x2="81.5" y2="38.5">
+          <stop offset="0%" stopColor="#A855F7" />
+          <stop offset="65%" stopColor="#D946EF" />
+          <stop offset="100%" stopColor="#F472B6" />
+        </linearGradient>
+        <radialGradient id="hmCore" cx="38%" cy="34%" r="72%">
+          <stop offset="0%" stopColor="#FFFFFF" />
+          <stop offset="42%" stopColor="#EBD6FF" />
+          <stop offset="100%" stopColor="#9333EA" />
+        </radialGradient>
+      </defs>
+      <path d="M 96.144 33.194 A 45 45 0 0 0 66.603 15.487" fill="none" stroke="url(#hm1)" strokeWidth="10" strokeLinecap="round" />
+      <path d="M 77.518 32.034 A 33 33 0 0 0 48.477 29.077" fill="none" stroke="url(#hm2)" strokeWidth="11.5" strokeLinecap="round" />
+      <path d="M 62.457 38.641 A 21.5 21.5 0 0 0 42.731 47.192" fill="none" stroke="url(#hm3)" strokeWidth="13" strokeLinecap="round" />
+      <circle cx="60" cy="60" r="8" fill="url(#hmCore)" />
+    </svg>
+  )
+}
+
 export function MicIcon() {
   return (
     <svg

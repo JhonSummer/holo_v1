@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState } from 'react'
 import { signInWithGoogle, googleConfigured } from '../auth/session'
 import type { SessionUser } from '../auth/session'
-import { GoogleIcon } from './icons'
+import { GoogleIcon, HoloMark } from './icons'
 import './login.css'
 
 // The gate into the holodeck. The card is wired into a live constellation:
@@ -42,7 +42,10 @@ export default function Login({ onSignIn }: { onSignIn: (u: SessionUser) => void
     <div className="login">
       <NeuralCanvas firePulse={firePulse} />
       <header className="login-header">
-        <div className="login-eyebrow">HOLODECK</div>
+        <div className="login-eyebrow">
+          <HoloMark size={22} />
+          HOLODECK
+        </div>
         <h1>
           Step <em>inside</em> the video.
         </h1>

@@ -8,7 +8,7 @@ import ValueInspector from './ui/ValueInspector'
 import { useVoice } from './voice/useVoice'
 import { useSession } from './ai/useSession'
 import { useNarration } from './ui/useNarration'
-import { MicIcon, SendIcon } from './ui/icons'
+import { HoloMark, MicIcon, SendIcon } from './ui/icons'
 import type { SessionUser } from './auth/session'
 
 export default function App({ user, onSignOut }: { user: SessionUser; onSignOut: () => void }) {
@@ -78,6 +78,7 @@ export default function App({ user, onSignOut }: { user: SessionUser; onSignOut:
       <div className="hud top-left">
         <div className="panel">
           <div className="title">
+            <HoloMark size={18} />
             Holodeck
             <span className="badge">{serverVoice.tts ? 'ElevenLabs' : 'Web Speech'}</span>
           </div>

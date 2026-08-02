@@ -1,3 +1,59 @@
+● Both issues are real and I can pin them to specific code. Here's the diagnosis and what I'd do about each.
+
+  1. Zoom only works at the center
+
+  The camera is a stock drei OrbitControls in frontend/src/scene/CameraRig.tsx:44. Two things combine against you:                                                            
+
+  - Scroll-zoom always dollies toward the orbit target, which sits wherever the last narration focus put it (usually the pipeline center). Pointing your mouse at a side block and scrolling still zooms
+  toward the center target.                                                                                                                                                   
+  - Panning does exist, but only on right-mouse-drag (OrbitControls' default), which nobody discovers — and even after panning, the orbit pivot only moves as far as the pan did.
+
+  Ideas, in order of bang-for-buck:
+
+  - zoomToCursor (one-liner). Your three version (r169) supports it: add zoomToCursor to the OrbitControls props and wheel-zoom heads toward whatever is under the mouse pointer. This alone fixes "pan to
+  a side and zoom there" — you don't even need to pan first.
+  - Double-click to re-center. Raycast the click against the scene and lerp controls.target to the hit point (you already have the lerp machinery in CameraRig — it's the same code path as focusToCamera).
+  After re-centering, orbiting rotates around what you clicked, which zoomToCursor alone doesn't give you.
+  - Optionally remap mouseButtons so left-drag pans and right-drag orbits (or advertise the right-drag pan in the UI hint).
+
+  2. "MLP" text and activation values cutting through the attention cubes
+
+  This is a genuine geometry collision, not a rendering artifact:
+
+  - The activation panel is wider than the gap between blocks. ActivationGrid.tsx:24 places the panel at blockX + 4.1, but blocks are only BLOCK_SPACING = 7 apart. The per-token value labels grow
+  downward from y≈3.5 by 0.58/token — with 8+ tokens they descend right to ATTN_Y = -1.1. And in values mode the dims panel starts at local x 2.6 and spans ~7.6 more units, so it runs straight through
+  the next block (and the one after) at z=0 — exactly the plane where a head cube sits. Depth-tested text glyphs slicing through opaque cubes is precisely the "occluded intersection" look you're seeing.
+  - The head cubes also outgrow their shell: with GPT-2's 12 heads, headZ spreads them across ±3.74 in z while the block shell is only ±1.7 wide, so cubes poke out and collide with anything nearby,
+  including the "MLP" label plane of the same block when viewed at an angle.
+
+  Ideas:
+
+  - Move the activation panel out of the pipeline axis. Offset it in +Z (toward the default camera, e.g. z = BLOCK_WIDTH/2 + 3) or above the block instead of to the right along x — x is the one direction
+  guaranteed to hit the next block.
+  - Render the panel as an overlay: depthTest={false} + a high renderOrder on the Text and cell materials, with a semi-transparent dark backing plane for readability. Then even where it does overlap
+  geometry, it reads as a floating HUD instead of intersecting solids. (drei Billboard around the group is a nice extra so it always faces the camera.)
+  - Fit the heads inside the shell: compute head spacing from BLOCK_WIDTH ((BLOCK_WIDTH - HEAD_SIZE) / (n_heads - 1)) instead of the fixed 0.18 gap in layout.ts:22, so 12 heads compress to fit ±1.7.
+  Labels ("MLP", "12-head attn", "Block n") could also get depthWrite={false} and a nudge to the front face (z = BLOCK_WIDTH/2 + 0.05) so they never sit inside the translucent shell.
+
+  If you want, I can implement the quick wins — zoomToCursor, the panel z-offset + no-depth-test overlay, and head spacing that fits the shell — they're all small, contained changes.
+------------------------------------------------------------------------------------------------------------------------
+
+● The pitch deck now carries the branding, live at myholodeck.app/pitchdeck/. What I added:
+
+  - Title slide — the text eyebrow "Holodeck · 2026" is now a proper brand lockup: the full primary mark (tapered arcs with the violet halo) at 64px next to the wordmark. I verified the mark renders
+  correctly with its taper and glow on the deck's near-black background.
+  - Prominent color — the headline accent "the video." on the title slide and "Neither is this." on the closing slide now use the brand's signature gradient ramp (cyan → violet → pink) as clipped text,
+  instead of flat signal blue. This is the boldest change — it bookends the deck with the brand color while everything between keeps the existing signal/pulse/ember system. There's a print fallback so
+  the gradient text doesn't vanish when someone hits P to print.
+  - Persistent footer mark — an 18px mark sits in the scrubber bar next to the timecode, so the brand is on every slide without competing with content. (The scrubber already had a .mark class for its
+  diamond beat markers, so the logo uses a separate mark-logo class to avoid a style collision.)
+  - Head tags — the deck page now gets the real favicon, theme-color, and its own OG/Twitter card tags pointing at the branded 1200×630 card, so sharing the pitchdeck link also renders nicely.
+
+  The deck is served directly from docs/pitchdeck/index.html so no build step was needed — the changes are live now. Everything (app + deck) is still uncommitted on top of the v1.0-pre-branding tag, so
+  the full revert remains one git checkout -- . away. Take a look at both pages — if the gradient headline feels too loud against the locked palette, that's a one-line change back to accent-s blue while
+  keeping the logo and favicon.
+
+------------------------------------------------------------------------------------------------------------------------
   
 ● Done. The pitch deck is shareable at https://myholodeck.app/pitchdeck/ (the no-slash version redirects there). It's served by the existing uvicorn app via a new /pitchdeck static mount in
   backend/app/main.py, with the deck file now at docs/pitchdeck/index.html. The main site and API were verified unaffected after the restart, and I've updated my deploy notes to reflect that the domain's

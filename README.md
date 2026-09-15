@@ -14,5 +14,4 @@ Finally allow the user to also user cursor keys, mouse etc to zoom/pan into a 3d
 
 Transformer video: https://www.youtube.com/watch?v=wjZofJX0v4M  You can use https://github.com/yt-dlp/yt-dlp to download the youtube video or another suitable tool 
 
-Create a plan and build the harness needed to execute on this project. 
 

@@ -31,11 +31,9 @@ export default function PacketFlow({ state, config, event, animate }: {
   }
   return <g className="da-packets" aria-hidden="true">
     {paths.flatMap((route, routeIndex) => Array.from({ length: route.count }, (_, i) => (
-      <rect key={`${routeIndex}-${i}`} x={-3} y={-3} width={6} height={6} rx={1} fill={route.color} opacity={0}>
-        <animateMotion path={route.path} dur={`${duration * .65}s`} begin={`${i * duration * .3 / route.count}s`} fill="freeze" />
-        <animate attributeName="opacity" values="0;1;1;0" keyTimes="0;0.05;0.9;1"
-          dur={`${duration * .65}s`} begin={`${i * duration * .3 / route.count}s`} fill="freeze" />
-      </rect>
+      <rect key={`${routeIndex}-${i}`} x={-3} y={-3} width={6} height={6} rx={1} fill={route.color}
+        style={{ offsetPath: `path('${route.path}')`, offsetRotate: '0deg',
+          animation: `da-packet-travel ${duration * .65}s linear ${i * duration * .3 / route.count}s both` }} />
     )))}
   </g>
 }

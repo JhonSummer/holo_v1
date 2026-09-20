@@ -31,6 +31,12 @@
 .da-svg-code { font: 10px 'IBM Plex Mono', monospace; }
 .da-chunk { cursor: pointer; }
 .da-chunk rect { transition: fill-opacity .5s, stroke-opacity .5s; }
+@keyframes da-packet-travel {
+  0% { offset-distance: 0%; opacity: 0; }
+  5% { opacity: 1; }
+  90% { opacity: 1; }
+  100% { offset-distance: 100%; opacity: 0; }
+}
 .da-chunk:hover rect { stroke-width: 3px; }
 .da-legend { display: flex; flex-wrap: wrap; gap: 14px; padding: 0 18px 14px; font: 10px 'IBM Plex Mono', monospace; color: #a1b3bc; }
 .da-legend span:last-child { margin-left: auto; font-size: 9px; }
@@ -75,3 +81,36 @@
 @media (max-width: 1050px) { .da-workspace { grid-template-columns: 1fr 215px; gap: 10px; } .da-inspector { padding: 15px; } .da-narrator { grid-template-columns: 1fr; } .da-transport { justify-content: flex-start; } .da-header { gap: 10px; } }
 @media (max-width: 730px) { .da-lesson { padding: 0 15px 20px; } .da-workspace { grid-template-columns: 1fr; } .da-inspector { display: grid; grid-template-columns: 1fr 1fr; gap: 0 20px; } .da-inspector dl { grid-column: 2; grid-row: 1 / 5; } .da-header { flex-wrap: wrap; padding: 12px 0; } .da-simulation-badge { display: none; } .da-header select { max-width: 200px; } .da-title-row h1 { font-size: 27px; } .da-paper { display: none; } .da-diagram-panel { overflow-x: auto; } .da-stage { min-width: 650px; } .da-ask { flex-wrap: wrap; } .da-ask input { flex-basis: 100%; } .da-narrator { padding: 15px; } }
 @media (prefers-reduced-motion: reduce) { .da-packets { display: none; } .da-chunk rect, .da-meter > div { transition: none; } }
+/* A laptop-height viewport must show the picture AND its caption together. */
+@media (min-width: 1051px) and (max-height: 900px) {
+  .da-lesson { display: grid; grid-template-rows: 48px 62px minmax(300px, 1fr) 48px 48px 136px 22px; gap: 0; padding-bottom: 8px; }
+  .da-header { min-height: 0; }
+  .da-title-row { padding: 9px 0; }
+  .da-title-row h1 { margin: 4px 0 0; font-size: 27px; }
+  .da-title-row p { display: none; }
+  .da-workspace { min-height: 0; }
+  .da-diagram-panel { display: flex; flex-direction: column; }
+  .da-stage-heading { padding: 10px 14px; flex: none; }
+  .da-stage { height: 0; min-height: 0; flex: 1; }
+  .da-svg-label { font-size: 16px; }
+  .da-svg-small { font-size: 12px; }
+  .da-svg-tiny { font-size: 10px; }
+  .da-legend { flex: none; font-size: 9px; padding: 4px 14px 10px; gap: 10px; }
+  .da-inspector { padding: 14px 18px; overflow-y: auto; }
+  .da-read-number { margin-top: 7px; font-size: 30px; }
+  .da-read-number span { margin-bottom: 9px; }
+  .da-inspector dl { margin: 10px 0 8px; }
+  .da-inspector dl > div { padding: 5px 0; }
+  .da-total { margin: 9px 0; gap: 3px; }
+  .da-experiment { margin: 6px 0; gap: 10px; }
+  .da-experiment button { padding-top: 7px; padding-bottom: 7px; }
+  .da-chapters { padding: 2px 0 7px; }
+  .da-chapters button { padding: 5px 8px; font-size: 9px; line-height: 1.2; }
+  .da-chapters button span { margin-bottom: 3px; }
+  .da-narrator { padding: 11px 16px; gap: 7px 14px; grid-template-rows: 58px 1fr; }
+  .da-caption p { min-height: 0; margin-top: 5px; font-size: 13px; line-height: 1.45; }
+  .da-transport button { padding: 8px 10px; font-size: 10px; }
+  .da-ask { padding-top: 7px; }
+  .da-ask input { padding: 9px 12px; }
+  .da-footnote { padding: 5px 0 0; font-size: 9px; }
+}

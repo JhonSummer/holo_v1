@@ -8,6 +8,7 @@ import './login.css'
 // hovering or pressing a sign-in control feeds a forward pass through the
 // network — signing in is the first input token.
 export default function Login({ onSignIn }: { onSignIn: (u: SessionUser) => void }) {
+  const isMemoryLesson = new URLSearchParams(location.search).get('lesson') === 'declarative-attention'
   const [busy, setBusy] = useState(false)
   const [note, setNote] = useState<{ text: string; error?: boolean } | null>(null)
   const firePulse = useRef<() => void>(() => {})
@@ -31,7 +32,10 @@ export default function Login({ onSignIn }: { onSignIn: (u: SessionUser) => void
     }
   }
 
-  const onEnterSession = () => {
+  const onEnterSession = (lessonId = isMemoryLesson ? 'declarative-attention' : 'gpt2') => {
+    const url = new URL(location.href)
+    url.searchParams.set('lesson', lessonId)
+    history.replaceState(null, '', url)
     firePulse.current()
     setBusy(true)
     // let the pulse travel before the scene swap
@@ -57,29 +61,30 @@ export default function Login({ onSignIn }: { onSignIn: (u: SessionUser) => void
       <main className="login-card">
         <button
           className="session-tile"
-          onClick={onEnterSession}
+          onClick={() => onEnterSession()}
           onMouseEnter={() => firePulse.current()}
           disabled={busy}
         >
           <span className="session-label">
             <span className="live-dot" />
-            LIVE SESSION
+            {isMemoryLesson ? 'INTERACTIVE LESSON' : 'LIVE SESSION'}
           </span>
           <span className="session-title">
-            Step into the Transformer
+            {isMemoryLesson ? 'Declarative Attention' : 'Step into the Transformer'}
             <span className="session-arrow">→</span>
           </span>
           <span className="session-desc">
-            Ride a GPT-2 forward pass — attention heads, MLPs, and next-token predictions in
-            real space.
+            {isMemoryLesson ? 'Read less KV. Move no KV. Follow the bytes, change the attention mask, and keep every block in its seat.' : 'Ride a GPT-2 forward pass — attention heads, MLPs, and next-token predictions in real space.'}
           </span>
           <span className="session-meta">
-            <span>GPT-2 SMALL</span>
-            <span>12 LAYERS</span>
-            <span>124M PARAMS</span>
+            <span>{isMemoryLesson ? 'SIMULATED' : 'GPT-2 SMALL'}</span>
+            <span>{isMemoryLesson ? '4 CHUNKS' : '12 LAYERS'}</span>
+            <span>{isMemoryLesson ? 'KV READS' : '124M PARAMS'}</span>
           </span>
         </button>
-        <p className="more-sessions">More sessions docking soon.</p>
+        <button className="lesson-link" disabled={busy} onClick={() => onEnterSession(isMemoryLesson ? 'gpt2' : 'declarative-attention')}>
+          {isMemoryLesson ? 'Or explore the real GPT-2 model →' : 'New lesson: Declarative Attention →'}
+        </button>
         <div className="login-or">OR</div>
         <button
           className="g-btn"

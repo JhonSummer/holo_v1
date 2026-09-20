@@ -149,6 +149,9 @@
 }
 .session-tile:active { transform: translateY(0); }
 .session-tile:disabled { opacity: 0.6; cursor: default; }
+.lesson-link { display: block; width: 100%; margin-top: 12px; padding: 8px 0; text-align: left; background: transparent; border: 0; color: var(--signal); font: 12px 'Space Grotesk', sans-serif; cursor: pointer; }
+.lesson-link:hover { color: var(--pulse); }
+.lesson-link:focus-visible { outline: 2px solid var(--signal); outline-offset: 3px; }
 
 .session-label {
   display: flex;

@@ -27,6 +27,8 @@
 .da-paper { text-align: right; font-size: 12px; text-decoration: none; }
 .da-paper small { display: block; margin-top: 4px; color: var(--dim); font: 10px 'IBM Plex Mono', monospace; }
 .da-workspace { display: grid; grid-template-columns: minmax(0,1fr) 240px; gap: 14px; }
+.da-guide { position: sticky; top: 0; z-index: 20; display: grid; grid-template-columns: minmax(0,1fr) auto; gap: 10px 16px; padding: 12px 16px; margin-bottom: 12px; background: #0c101c; border: 1px solid var(--line); border-radius: 12px; box-shadow: 0 4px 16px #0005; }
+.da-guide .da-caption { max-height: 145px; overflow-y: auto; }
 .da-diagram-panel, .da-inspector, .da-narrator, .da-checkpoint { background: rgba(12,16,28,.92); border: 1px solid var(--line); border-radius: 12px; }
 .da-diagram-panel { overflow: hidden; min-width: 0; }
 .da-stage-heading { display: flex; justify-content: space-between; padding: 11px 14px; gap: 10px; border-bottom: 1px solid var(--line); font: 10px 'IBM Plex Mono', monospace; }
@@ -108,6 +110,7 @@
   .da-workspace { grid-template-columns: minmax(0,1fr) 210px; gap: 10px; }
   .da-inspector { padding: 12px; }
   .da-narrator { grid-template-columns: 1fr; }
+  .da-guide { grid-template-columns: 1fr; }
   .da-transport { justify-content: flex-start; max-width: none; }
 }
 @media (max-width: 730px) {

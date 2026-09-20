@@ -105,6 +105,17 @@ export default function DeclarativeAttentionLesson({ pod, catalogue, onSelect, o
         <p>Change what attention reads. Watch what stays resident.</p></div>
       <a className="da-paper" href="https://arxiv.org/abs/2609.02737" target="_blank" rel="noreferrer">Read the paper ↗<small>arXiv:2609.02737</small></a>
     </section>
+    <section className="da-guide">
+      <div className="da-caption" aria-live="polite"><span className="da-kicker">{thinking ? 'GROK IS THINKING · YOUR SCENE IS HELD' : checkpoint ? 'PAUSED FOR YOUR PREDICTION · CHECK BELOW THE SCENE' : 'THE GUIDE'}</span><p>{lesson.caption}</p></div>
+      <div className="da-transport">
+        <button className="da-primary" disabled={!!checkpoint || lesson.completed} onClick={() => lesson.playing ? interrupt() : action(() => { lesson.play() })}>{lesson.playing ? 'Ⅱ Pause' : lesson.completed ? 'Lesson complete' : lesson.beatIndex < 0 ? '▶ Start lesson' : '▶ Continue'}</button>
+        <button disabled={!!checkpoint || lesson.completed} onClick={() => action(() => { lesson.step() })}>Step →</button>
+        <button onClick={() => action(() => {setPractice(null);lesson.replay()})}>Replay chapter</button>
+        <button onClick={() => action(() => {setPractice(null);lesson.restart()})}>↺ Restart</button>
+        <button onClick={() => { const next = !muted; setMuted(next); voiceEnabled.current = !next; if (next) voice.stopSpeaking() }} aria-pressed={muted}>{muted ? 'Voice off' : 'Voice on'}</button>
+        {(thinking || voice.recording) && <button onClick={interrupt}>Cancel</button>}
+      </div>
+    </section>
     <section className="da-workspace">
       <div className="da-diagram-panel">
         <div className="da-stage-heading"><span>{lesson.beatIndex < 0 ? 'THE HARDWARE' : `${String(lesson.beatIndex + 1).padStart(2, '0')} / ${pod.narration[lesson.beatIndex].title}`}</span>
@@ -131,17 +142,8 @@ export default function DeclarativeAttentionLesson({ pod, catalogue, onSelect, o
     {checkpoint && <CheckpointCard key={checkpoint} id={checkpoint} onContinue={()=>{setPractice(null);lesson.resolveCheckpoint();lesson.play()}} />}
     <nav className="da-chapters" aria-label="Lesson chapters">{pod.narration.map((beat, index) =>
       <button key={beat.id} aria-current={index === lesson.beatIndex ? 'step' : undefined} title={beat.title}
-        onClick={() => action(() => { lesson.goTo(index) })}><span>{String(index + 1).padStart(2, '0')}</span>{beat.title}</button>)}</nav>
+        onClick={() => action(() => {setPractice(null);lesson.goTo(index)})}><span>{String(index + 1).padStart(2, '0')}</span>{beat.title}</button>)}</nav>
     <section className="da-narrator">
-      <div className="da-caption" aria-live="polite"><span className="da-kicker">{thinking ? 'GROK IS THINKING · YOUR SCENE IS HELD' : 'THE GUIDE'}</span><p>{lesson.caption}</p></div>
-      <div className="da-transport">
-        <button className="da-primary" disabled={!!checkpoint || lesson.completed} onClick={() => lesson.playing ? interrupt() : action(() => { lesson.play() })}>{lesson.playing ? 'Ⅱ Pause' : lesson.completed ? 'Lesson complete' : lesson.beatIndex < 0 ? '▶ Start lesson' : '▶ Continue'}</button>
-        <button disabled={!!checkpoint || lesson.completed} onClick={() => action(() => { lesson.step() })}>Step →</button>
-        <button onClick={() => action(() => {setPractice(null);lesson.replay()})}>Replay chapter</button>
-        <button onClick={() => action(() => { lesson.restart() })}>↺ Restart</button>
-        <button onClick={() => { const next = !muted; setMuted(next); voiceEnabled.current = !next; if (next) voice.stopSpeaking() }} aria-pressed={muted}>{muted ? 'Voice off' : 'Voice on'}</button>
-        {(thinking || voice.recording) && <button onClick={interrupt}>Cancel</button>}
-      </div>
       <p className="da-resume-hint">Continue keeps your scene and proceeds with the guide. Replay chapter rebuilds its starting state. Pausing settles the current visual step.</p>
       <form className="da-ask" onSubmit={event => { event.preventDefault(); ask(question) }}>
         <input aria-label="Ask the DA tutor" placeholder='Ask: “Why does local still read some KV?”' value={question} onChange={event => setQuestion(event.target.value)} maxLength={4000} disabled={thinking} />

@@ -22,7 +22,7 @@ function Camera({view}: {view:View}) {
   const {camera,invalidate} = useThree()
   const controls = useRef<any>(null)
   useEffect(() => {
-    const positions: Record<View, [number,number,number]> = {overview:[0,1.8,14],memory:[-2.8,-2,8],compute:[-3,2,8],host:[5.7,.2,7]}
+    const positions: Record<View, [number,number,number]> = {overview:[0,.6,10],memory:[-2.8,-2,5],compute:[-3,2,6],host:[5.7,.2,9]}
     const targets: Record<View, [number,number,number]> = {overview:[0,0,0],memory:[-2.8,-2,0],compute:[-3,1.5,0],host:[5.7,0,0]}
     camera.position.set(...positions[view])
     controls.current?.target.set(...targets[view])
@@ -61,7 +61,7 @@ export default function GpuSpatial({state,config,cue,declaration,prefilledSlots,
   return <div className={`da-spatial ${cue?.kind==='residency'?'da-residency-pulse':''}`}>
     <div className="da-camera-controls" aria-label="Camera views">{(['overview','memory','compute','host'] as View[]).map(name=><button key={name} aria-pressed={view===name} onClick={()=>setView(name)}>{name}</button>)}</div>
     <div className="da-canvas" role="img" aria-label={`Spatial GPU. ${state.mode} mode. ${resident?'KV resident':'KV empty'}. Use the controls below for accessible chunk selection.`}>
-      <Canvas frameloop="demand" dpr={[1,1.25]} camera={{position:[0,1.8,14],fov:42}} gl={{antialias:true,powerPreference:'low-power'}}>
+      <Canvas frameloop="demand" dpr={[1,1.25]} camera={{position:[0,.6,10],fov:42}} gl={{antialias:true,powerPreference:'low-power'}}>
         <color attach="background" args={['#05060a']} />
         <ambientLight intensity={1.4} /><directionalLight position={[0,5,10]} intensity={2} />
         <Camera view={view} />
@@ -79,15 +79,15 @@ export default function GpuSpatial({state,config,cue,declaration,prefilledSlots,
           <Slab x={325} y={364} w={560} h={147} color="#361c29" depth={.18} />
           {weightNames.map((name,i)=><group key={name}>
             <Slab x={125+i*135} y={310} w={124} h={24} color={COLORS.weights} opacity={stageReached(state,'weights')&&(cue?.kind!=='weights'||i<(cue.slot??0))?1:.15} depth={.38} />
-            <Label x={125+i*135} y={310} text={name} size={9} color="#05060a" />
+            <Label x={125+i*135} y={310} text={name} size={10} color={stageReached(state,'weights')?'#05060a':'#b5bece'} />
           </group>)}
           {slots.map((chunk,i)=>{
             const active=chunk.id===0||selected.includes(chunk.id)
             const filled=resident&&i<prefilledSlots
             return <group key={chunk.id}>
               <Slab x={slotCenter(i,config.chunks.length)} y={365} w={slotWidth(config.chunks.length)-9} h={52} color={chunk.color} depth={.48} opacity={filled ? (active ? .85 : .16) : .08} onClick={resident&&chunk.id?()=>onChunk(chunk.id):undefined} />
-              <Label x={slotCenter(i,config.chunks.length)} y={358} text={chunk.label} color={chunk.color} size={14} />
-              <Label x={slotCenter(i,config.chunks.length)} y={379} text={!filled?'EMPTY':active?'READ':'MASKED'} size={8} />
+              <Label x={slotCenter(i,config.chunks.length)} y={358} text={chunk.label} color={filled&&active?'#071b12':chunk.color} size={16} />
+              <Label x={slotCenter(i,config.chunks.length)} y={379} text={!filled?'EMPTY':active?'READ':'MASKED'} color={filled&&active?'#071b12':'#e6e9f0'} size={10} />
             </group>
           })}
           <Label x={148} y={420} text="HBM · fixed KV seats" color={COLORS.hbm} size={10} />

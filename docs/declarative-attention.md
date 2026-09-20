@@ -6,9 +6,11 @@ This lesson is an explicit **protocol simulation**, not a DA model deployment or
 
 - `backend/app/pods/declarative-attention.json`: authored story, cadence and numerical assumptions.
 - `frontend/src/lessons/declarative-attention/simulation.ts`: pure state transitions and counters. Start here.
-- `GpuStage.tsx` / `PacketFlow.tsx`: the persistent diagram and bounded packet animations.
+- `GpuSpatial.tsx`: demand-rendered spatial GPU, camera presets and bounded packets. No idle spin.
+- `GpuStage.tsx` / `PacketFlow.tsx`: the equivalent low-power diagram; `geometry.ts` shares colors, seats and packet routes across both views.
 - `MemoryInspector.tsx`: accounting and its explicit limitations.
-- `useLessonPlayback.ts`: cancelable chapter playback, checkpoint reconstruction, speech and reading-time fallback.
+- `playback.ts`: testable cancellation, command cursor and chapter playback. `useLessonPlayback.ts` is the small React adapter.
+- `checkpoints.ts` / `CheckpointCard.tsx`: prediction questions with misconception-specific feedback.
 - `DeclarativeAttentionLesson.tsx`: controls, navigation and tutor handoff.
 - `backend/app/lessons/declarative_attention/`: schema validation and the scene-specific tutor. The normal Messages proxy is reused.
 
@@ -26,9 +28,13 @@ The animation duration is a pedagogical scale, not a GPU latency estimate. Outpu
 
 ## Cadence
 
-The authored spine is empty → weights → request → prefill → vanilla → focus → sparse read → global → local → conclusion. Visual actions settle before their spoken explanation. Each line has a breathing gap; with voice disabled, captions use a roughly 15-character/second reading hold. Chapter selection reconstructs prior state without speaking all earlier chapters. Continue replays the current chapter from its checkpoint. Direct manipulation pauses the guide; it does not auto-resume.
+The authored spine is empty → weights → request → prefill → vanilla → focus → sparse read → paper result → global → local → conclusion. Prefill shows input travel, then KV writes, one seat at a time. Mode declarations appear before masks change; decode reads precede response writes. Visual actions settle before their spoken explanation. Each line has a breathing gap; with voice disabled, captions use a roughly 15-character/second reading hold.
 
-One browser voice is used unless an existing TTS provider is configured. Microphone access stays browser-controlled. The Grok tutor explains this simulated state, not its own private model internals. It may control only three validated DA operations. Inference failures leave the scene unchanged.
+Continue preserves the current scene and command cursor; it does not reconstruct a checkpoint or duplicate decoded tokens. Direct manipulation pauses the guide and leaves it at the next authored chapter. Only explicit chapter selection or Replay chapter reconstructs prior state. Three optional prediction checkpoints interrupt playback; wrong answers get specific feedback before the learner retries or skips. Restart begins the full guide again.
+
+One browser voice is pinned for the lesson unless an existing TTS provider is configured. Microphone access stays browser-controlled. Stop recording submits; Cancel discards. Speech, capture, transcription and tutor work have bounded lifetimes and cancel on interruption/unmount. Cancel closes the upstream HTTP request; it cannot guarantee that the remote model provider stops computation already received.
+
+The Grok tutor receives current state, code-computed counters, the lesson configuration and the last six conversation exchanges. It explains this simulation, not its own private model internals, and may control only three validated DA operations. Inference failures leave the scene unchanged. The sticky guide keeps captions and transport visible while the learner explores; the diagram alternative remains available when WebGL is unavailable or too costly.
 
 ## Verification
 

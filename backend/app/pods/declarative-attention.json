@@ -14,7 +14,7 @@
         {"id": 1, "label": "C1", "tokens": 2048, "color": "#47d9c2"},
         {"id": 2, "label": "C2", "tokens": 2048, "color": "#e7bf63"},
         {"id": 3, "label": "C3", "tokens": 2048, "color": "#e98772"},
-        {"id": 4, "label": "C4", "tokens": 2048, "color": "#b884c9"}
+        {"id": 4, "label": "C4", "tokens": 2048, "color": "#c55f73"}
       ]
     }
   },
@@ -25,11 +25,12 @@
     {"id": "prefill", "title": "Build the KV cache", "text": "Prefill turns the request into keys and values. Those blocks now live in GPU memory. Keep an eye on their seats.", "commands": [{"op": "daStage", "args": {"stage": "prefill"}}], "hold_ms": 1400},
     {"id": "vanilla", "title": "Read everything", "text": "Vanilla decoding reads all the cached context for the next token. Follow the colored packets. These are reads, not relocated blocks.", "commands": [{"op": "daMode", "args": {"mode": "global"}}, {"op": "daDecode", "args": {"text": "Looking"}}], "hold_ms": 1000},
     {"id": "repeat", "title": "Pay again, every token", "text": "Another token, another full read. The previous response token is now cached too. In this long-context picture, memory traffic is the cost we are isolating.", "commands": [{"op": "daDecode", "args": {"text": "through the context…"}}], "hold_ms": 1200},
-    {"id": "focus", "title": "Declare where to look", "text": "The output declares a focus on chunk three. The engine changes the read mask. Other chunks dim, but none leave their seats.", "commands": [{"op": "daMode", "args": {"mode": "focus", "chunks": [3]}}], "hold_ms": 1400},
-    {"id": "sparse", "title": "Read less", "text": "Now read the scaffold, chunk three, and the response so far. Fewer packets. A smaller bar. The same resident cache.", "commands": [{"op": "daDecode", "args": {"text": "C3 has the dates."}}], "hold_ms": 1500},
+    {"id": "focus", "title": "Declare where to look", "text": "The model writes a focus declaration into its output. The engine parses it, then changes the read mask. Other chunks dim, but none leave their seats. Predict what the next step will read.", "commands": [{"op": "daMode", "args": {"mode": "focus", "chunks": [3]}}], "hold_ms": 1400, "checkpoint": "read-set"},
+    {"id": "sparse", "title": "Read less", "text": "Now read the scaffold, chunk three, and the response so far. Fewer packets. A smaller bar. The same resident cache. Did we free any memory?", "commands": [{"op": "daDecode", "args": {"text": "C3 has the dates."}}], "hold_ms": 1500, "checkpoint": "residency"},
+    {"id": "evidence", "title": "What the paper measured", "text": "The paper reports fifty-two percent fewer attended tokens for Gemma four, thirty-one B, averaged across decoding, with about one point three percentage points lower accuracy. That is not our next-token bar, and not a measured GPU speedup.", "commands": [], "hold_ms": 1400},
     {"id": "global", "title": "Look around again", "text": "Global attention makes every chunk available again. One full read to cross-check. Nothing needs to be fetched back from the host.", "commands": [{"op": "daMode", "args": {"mode": "global"}}, {"op": "daDecode", "args": {"text": "Cross-checking…"}}], "hold_ms": 1100},
-    {"id": "local", "title": "Answer from what you know", "text": "Local attention skips every context chunk. The scaffold and the accumulated response remain available. Our scripted example can now give its answer.", "commands": [{"op": "daMode", "args": {"mode": "local"}}, {"op": "daDecode", "args": {"text": "8 years."}}], "hold_ms": 1600},
-    {"id": "point", "title": "The seats never changed", "text": "Read less KV. Move no KV. The mask changed which cached bytes were read, not where they were stored. Try a different focus, then decode one step.", "commands": [], "hold_ms": 1600}
+    {"id": "local", "title": "Answer from what you know", "text": "Local attention skips every context chunk. The scaffold and the accumulated response remain available. Our scripted example can now give its answer. Why is the read bar still above zero?", "commands": [{"op": "daMode", "args": {"mode": "local"}}, {"op": "daDecode", "args": {"text": "<answer>8 years</answer>"}}], "hold_ms": 1600, "checkpoint": "local"},
+    {"id": "point", "title": "The seats never changed", "text": "Read less KV. Move no KV. The mask changed which cached bytes were read, not where they were stored. Save a comparison, try another focus, and decode one step. Notice what changes and what stays.", "commands": [], "hold_ms": 1600, "emphasis": true}
   ],
   "affordances": []
 }

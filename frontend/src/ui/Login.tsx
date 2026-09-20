@@ -59,32 +59,35 @@ export default function Login({ onSignIn }: { onSignIn: (u: SessionUser) => void
         </p>
       </header>
       <main className="login-card">
+        <div className="session-catalogue">
+        {[
+          {id:'gpt2',label:'LIVE MODEL',title:'Step into the Transformer',description:'Ride a GPT-2 forward pass — attention heads, MLPs, and next-token predictions in real space.',meta:['GPT-2 SMALL','12 LAYERS','124M PARAMS']},
+          {id:'declarative-attention',label:'INTERACTIVE LESSON',title:'Declarative Attention',description:'Read less KV. Move no KV. Step inside a GPU, predict the next read, and discover what stays resident.',meta:['SIMULATED','4 CHUNKS','KV READS']},
+        ].map(lesson =>
         <button
+          key={lesson.id}
           className="session-tile"
-          onClick={() => onEnterSession()}
+          onClick={() => onEnterSession(lesson.id)}
           onMouseEnter={() => firePulse.current()}
           disabled={busy}
         >
           <span className="session-label">
             <span className="live-dot" />
-            {isMemoryLesson ? 'INTERACTIVE LESSON' : 'LIVE SESSION'}
+            {lesson.label}
           </span>
           <span className="session-title">
-            {isMemoryLesson ? 'Declarative Attention' : 'Step into the Transformer'}
+            {lesson.title}
             <span className="session-arrow">→</span>
           </span>
           <span className="session-desc">
-            {isMemoryLesson ? 'Read less KV. Move no KV. Follow the bytes, change the attention mask, and keep every block in its seat.' : 'Ride a GPT-2 forward pass — attention heads, MLPs, and next-token predictions in real space.'}
+            {lesson.description}
           </span>
           <span className="session-meta">
-            <span>{isMemoryLesson ? 'SIMULATED' : 'GPT-2 SMALL'}</span>
-            <span>{isMemoryLesson ? '4 CHUNKS' : '12 LAYERS'}</span>
-            <span>{isMemoryLesson ? 'KV READS' : '124M PARAMS'}</span>
+            {lesson.meta.map(value=><span key={value}>{value}</span>)}
           </span>
-        </button>
-        <button className="lesson-link" disabled={busy} onClick={() => onEnterSession(isMemoryLesson ? 'gpt2' : 'declarative-attention')}>
-          {isMemoryLesson ? 'Or explore the real GPT-2 model →' : 'New lesson: Declarative Attention →'}
-        </button>
+        </button>)}
+        </div>
+        <p className="login-note">Choose a lesson to enter as a guest. No account required.</p>
         <div className="login-or">OR</div>
         <button
           className="g-btn"

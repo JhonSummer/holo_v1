@@ -28,6 +28,8 @@ export interface DABeat {
   text: string
   commands: DACommand[]
   hold_ms: number
+  checkpoint?: 'read-set' | 'residency' | 'local'
+  emphasis?: boolean
 }
 
 export interface DeclarativeAttentionPod {
@@ -60,4 +62,15 @@ export interface MemoryState {
   focusedChunks: number[]
   responseTokens: number
   events: ReadEvent[]
+}
+
+export interface ConversationTurn { role: 'user' | 'assistant'; content: string }
+
+/** Transient presentation, separate from the committed simulation state. */
+export interface VisualCue {
+  kind: 'weights' | 'input' | 'write' | 'read' | 'response' | 'residency'
+  slot?: number
+  durationMs: number
+  event?: ReadEvent
+  serial: number
 }

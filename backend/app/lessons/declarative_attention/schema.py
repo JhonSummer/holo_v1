@@ -70,6 +70,13 @@ class DABeat(StrictModel):
     text: str
     commands: list[DACommand]
     hold_ms: int = Field(default=900, ge=0, le=10000)
+    checkpoint: Literal["read-set", "residency", "local"] | None = None
+    emphasis: bool = False
+
+
+class ConversationTurn(StrictModel):
+    role: Literal["user", "assistant"]
+    content: str = Field(min_length=1, max_length=4000)
 
 
 class DAResult(StrictModel):

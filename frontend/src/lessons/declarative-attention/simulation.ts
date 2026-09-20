@@ -2,8 +2,9 @@ import type { DACommand, DABeat, MemoryConfig, MemoryState, ReadEvent, Stage } f
 
 export const STAGES: Stage[] = ['empty', 'weights', 'request', 'prefill', 'decode']
 
-export function initialState(): MemoryState {
-  return { stage: 'empty', mode: 'global', focusedChunks: [3], responseTokens: 0, events: [] }
+export function initialState(config?: MemoryConfig): MemoryState {
+  const firstFocus = config?.chunks.find(chunk => chunk.id === 3)?.id ?? config?.chunks[0]?.id ?? 3
+  return { stage: 'empty', mode: 'global', focusedChunks: [firstFocus], responseTokens: 0, events: [] }
 }
 
 export function stageReached(state: MemoryState, stage: Stage): boolean {
@@ -48,6 +49,8 @@ export function applyCommand(state: MemoryState, command: DACommand, config: Mem
   switch (command.op) {
     case 'daStage':
       if (!STAGES.includes(command.args.stage)) return state
+      if (command.args.stage === 'empty') return initialState(config)
+      if (STAGES.indexOf(command.args.stage) < STAGES.indexOf(state.stage)) return { ...initialState(config), stage: command.args.stage }
       return { ...state, stage: command.args.stage }
     case 'daMode': {
       if (!['global', 'focus', 'local'].includes(command.args.mode)) return state
@@ -66,7 +69,14 @@ export function applyCommand(state: MemoryState, command: DACommand, config: Mem
 
 export function replayThrough(beats: DABeat[], index: number, config: MemoryConfig): MemoryState {
   return beats.slice(0, index + 1).reduce((state, beat) =>
-    beat.commands.reduce((current, command) => applyCommand(current, command, config), state), initialState())
+    beat.commands.reduce((current, command) => applyCommand(current, command, config), state), initialState(config))
+}
+
+export function describeState(state: MemoryState, config: MemoryConfig): string {
+  if (!stageReached(state, 'prefill')) return 'KV is not ready yet. Build the cache in Prefill before trying a decode step.'
+  const names = config.chunks.filter(chunk => selectedChunkIds(state, config).includes(chunk.id)).map(chunk => chunk.label)
+  const selected = names.length ? names.join(' + ') : 'no context chunks'
+  return `${state.mode === 'local' ? 'Local' : state.mode === 'focus' ? 'Focus' : 'Global'} reads the scaffold, ${selected}, and ${state.responseTokens} previous response token${state.responseTokens === 1 ? '' : 's'}. All context KV stays resident.`
 }
 
 export function formatBytes(bytes: number): string {

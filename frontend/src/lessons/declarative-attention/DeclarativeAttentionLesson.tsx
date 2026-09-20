@@ -68,6 +68,15 @@ export default function DeclarativeAttentionLesson({
   } | null>(null)
   const [history, setHistory] = useState<ConversationTurn[]>([])
   const historyRef = useRef<ConversationTurn[]>([])
+  const guideElement = useRef<HTMLElement>(null)
+  const sceneElement = useRef<HTMLElement>(null)
+  const showScene = () =>
+    requestAnimationFrame(() => {
+      const scene = sceneElement.current
+      if (!scene) return
+      scene.style.scrollMarginTop = `${(guideElement.current?.offsetHeight ?? 100) + 12}px`
+      scene.scrollIntoView({ block: 'start', behavior: reducedMotion ? 'auto' : 'smooth' })
+    })
   useEffect(() => {
     const preference = window.matchMedia('(prefers-reduced-motion: reduce)')
     const changed = () => setReducedMotion(preference.matches)
@@ -210,7 +219,7 @@ export default function DeclarativeAttentionLesson({
           Read the paper ↗<small>arXiv:2609.02737</small>
         </a>
       </section>
-      <section className="da-guide">
+      <section className="da-guide" ref={guideElement}>
         <div className="da-caption" aria-live="polite">
           <span className="da-kicker">
             {thinking
@@ -230,6 +239,7 @@ export default function DeclarativeAttentionLesson({
                 ? interrupt()
                 : action(() => {
                     lesson.play()
+                    showScene()
                   })
             }
           >
@@ -285,7 +295,7 @@ export default function DeclarativeAttentionLesson({
           {(thinking || voice.recording) && <button onClick={interrupt}>Cancel</button>}
         </div>
       </section>
-      <section className="da-workspace">
+      <section className="da-workspace" ref={sceneElement}>
         <div className="da-diagram-panel">
           <div className="da-stage-heading">
             <span>
@@ -336,7 +346,11 @@ export default function DeclarativeAttentionLesson({
             <span>Packets = payload (weights, inputs or KV) · density & time illustrative</span>
           </div>
         </div>
-        <MemoryInspector state={lesson.state} config={pod.scene.params} />
+        <MemoryInspector
+          state={lesson.state}
+          config={pod.scene.params}
+          animating={!!lesson.visual}
+        />
       </section>
       <section className="da-experiment" aria-label="Attention experiment">
         <div className="da-mode-buttons">
@@ -428,6 +442,7 @@ export default function DeclarativeAttentionLesson({
             setPractice(null)
             lesson.resolveCheckpoint()
             lesson.play()
+            showScene()
           }}
         />
       )}
@@ -441,6 +456,7 @@ export default function DeclarativeAttentionLesson({
               action(() => {
                 setPractice(null)
                 lesson.goTo(index)
+                showScene()
               })
             }
           >

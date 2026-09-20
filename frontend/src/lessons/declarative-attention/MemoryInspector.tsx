@@ -4,9 +4,11 @@ import { bytesPerToken, formatBytes, nextRead, residentBytes, stageReached } fro
 export default function MemoryInspector({
   state,
   config,
+  animating = false,
 }: {
   state: MemoryState
   config: MemoryConfig
+  animating?: boolean
 }) {
   const ready = stageReached(state, 'prefill')
   const read = nextRead(state, config)
@@ -14,7 +16,7 @@ export default function MemoryInspector({
   const baseline = state.events.reduce((sum, event) => sum + event.fullBytes, 0)
   return (
     <aside className="da-inspector">
-      <div className="da-kicker">THE NEXT TOKEN</div>
+      <div className="da-kicker">{animating ? 'AFTER THIS ANIMATION' : 'THE NEXT TOKEN'}</div>
       <div className="da-read-number">
         {ready ? `${(read.fraction * 100).toFixed(1)}%` : '—'}
         <span>of a full KV read</span>

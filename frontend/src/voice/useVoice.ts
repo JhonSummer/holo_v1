@@ -11,6 +11,7 @@ export function useVoice() {
   const chunks = useRef<Blob[]>([])
   const audioEl = useRef<HTMLAudioElement | null>(null)
   const recognition = useRef<any>(null)
+  const speechRequest = useRef<AbortController | null>(null)
   // Playback outlives React: the Audio element is detached and speechSynthesis is
   // global, so on unmount (e.g. sign-out) we must silence both and refuse new speech.
   const disposed = useRef(false)
@@ -21,6 +22,7 @@ export function useVoice() {
     audioEl.current = new Audio()
     return () => {
       disposed.current = true
+      speechRequest.current?.abort()
       if ('speechSynthesis' in window) window.speechSynthesis.cancel()
       audioEl.current?.pause()
       if (mediaRecorder.current?.state === 'recording') mediaRecorder.current.stop()
@@ -32,26 +34,37 @@ export function useVoice() {
   const speak = useCallback(
     async (text: string): Promise<boolean> => {
       if (!text || disposed.current) return false
+      speechRequest.current?.abort()
+      const request = new AbortController()
+      speechRequest.current = request
+      const signal = request.signal
       if (serverVoice.tts) {
         const url = await synthesizeSpeech(text)
+        if (signal.aborted || disposed.current) {
+          if (url) URL.revokeObjectURL(url)
+          return false
+        }
         const el = audioEl.current
         if (url && el && !disposed.current) {
           el.src = url
-          const finished = waitForAudioEnd(el, text)
+          const finished = waitForAudioEnd(el, text, signal)
           try {
             await el.play()
             return await finished
           } catch {
-            return disposed.current ? false : browserSpeak(text)
+            return disposed.current || signal.aborted ? false : browserSpeak(text, signal)
+          } finally {
+            URL.revokeObjectURL(url)
           }
         }
       }
-      return disposed.current ? false : browserSpeak(text)
+      return disposed.current || signal.aborted ? false : browserSpeak(text, signal)
     },
     [serverVoice.tts],
   )
 
   const stopSpeaking = useCallback(() => {
+    speechRequest.current?.abort()
     if ('speechSynthesis' in window) window.speechSynthesis.cancel()
     if (audioEl.current && !audioEl.current.paused) audioEl.current.pause()
   }, [])
@@ -103,39 +116,42 @@ function speechCapMs(text: string) {
   return 4000 + text.length * 120
 }
 
-function waitForAudioEnd(el: HTMLAudioElement, text: string): Promise<boolean> {
+function waitForAudioEnd(el: HTMLAudioElement, text: string, signal: AbortSignal): Promise<boolean> {
   return new Promise((resolve) => {
     const settle = (spoke: boolean) => {
       window.clearTimeout(cap)
       el.removeEventListener('ended', onDone)
       el.removeEventListener('pause', onDone)
       el.removeEventListener('error', onError)
+      signal.removeEventListener('abort', onError)
       resolve(spoke)
     }
     const onDone = () => settle(true)
     const onError = () => settle(false)
-    const cap = window.setTimeout(onDone, speechCapMs(text))
+    const cap = window.setTimeout(onError, speechCapMs(text))
     el.addEventListener('ended', onDone)
     el.addEventListener('pause', onDone)
     el.addEventListener('error', onError)
+    signal.addEventListener('abort', onError, { once: true })
   })
 }
 
-function browserSpeak(text: string): Promise<boolean> {
-  if (!('speechSynthesis' in window)) return Promise.resolve(false)
+function browserSpeak(text: string, signal: AbortSignal): Promise<boolean> {
+  if (!('speechSynthesis' in window) || signal.aborted) return Promise.resolve(false)
   return new Promise((resolve) => {
     const u = new SpeechSynthesisUtterance(text)
     u.rate = 1.02
     u.pitch = 1.0
-    const cap = window.setTimeout(() => resolve(true), speechCapMs(text))
-    u.onend = () => {
+    const settle = (spoken: boolean) => {
       window.clearTimeout(cap)
-      resolve(true)
+      signal.removeEventListener('abort', cancel)
+      resolve(spoken)
     }
-    u.onerror = () => {
-      window.clearTimeout(cap)
-      resolve(false)
-    }
+    const cancel = () => { window.speechSynthesis.cancel(); settle(false) }
+    const cap = window.setTimeout(cancel, speechCapMs(text))
+    u.onend = () => settle(true)
+    u.onerror = () => settle(false)
+    signal.addEventListener('abort', cancel, { once: true })
     window.speechSynthesis.cancel()
     window.speechSynthesis.speak(u)
   })

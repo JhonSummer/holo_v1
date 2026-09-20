@@ -10,8 +10,45 @@ import { useSession } from './ai/useSession'
 import { useNarration } from './ui/useNarration'
 import { HoloMark, MicIcon, SendIcon } from './ui/icons'
 import type { SessionUser } from './auth/session'
+import type { Pod, PodSummary, TransformerPod } from './types'
+import DeclarativeAttentionLesson from './lessons/declarative-attention/DeclarativeAttentionLesson'
 
-export default function App({ user, onSignOut }: { user: SessionUser; onSignOut: () => void }) {
+interface AppProps { user: SessionUser; onSignOut: () => void }
+
+export default function App(props: AppProps) {
+  const [catalogue, setCatalogue] = useState<PodSummary[]>([])
+  const [selected, setSelected] = useState(new URLSearchParams(location.search).get('lesson') || 'gpt2')
+  const [lesson, setLesson] = useState<Pod | null>(null)
+  const [error, setError] = useState('')
+  useEffect(() => { fetchPods().then(setCatalogue).catch(() => setError('Could not load lessons. Refresh to retry.')) }, [])
+  useEffect(() => {
+    let active = true
+    setLesson(null)
+    setError('')
+    fetchPod(selected).then(pod => { if (active) setLesson(pod) })
+      .catch(() => { if (active) setError('This lesson could not be loaded. Choose another lesson.') })
+    return () => { active = false }
+  }, [selected])
+  const selectLesson = (id: string) => {
+    if (!catalogue.some(pod => pod.id === id)) return
+    const url = new URL(location.href)
+    url.searchParams.set('lesson', id)
+    history.replaceState(null, '', url)
+    setSelected(id)
+  }
+  if (!lesson) return <div style={{ padding: 40 }} role="status">{error || 'Opening the lesson…'}
+    {error && catalogue.map(item => <button key={item.id} onClick={() => selectLesson(item.id)}>{item.title}</button>)}
+  </div>
+  if (lesson.scene.type === 'gpu-memory') {
+    return <DeclarativeAttentionLesson key={lesson.id} pod={lesson as import('./lessons/declarative-attention/types').DeclarativeAttentionPod}
+      catalogue={catalogue} onSelect={selectLesson} onSignOut={props.onSignOut} />
+  }
+  return <TransformerApp key={lesson.id} {...props} lesson={lesson as TransformerPod} catalogue={catalogue} onSelect={selectLesson} />
+}
+
+function TransformerApp({ user, onSignOut, lesson, catalogue, onSelect }: AppProps & {
+  lesson: TransformerPod; catalogue: PodSummary[]; onSelect: (id: string) => void
+}) {
   const pods = usePodStore((s) => s.pods)
   const pod = usePodStore((s) => s.pod)
   const playing = usePodStore((s) => s.playing)
@@ -25,23 +62,11 @@ export default function App({ user, onSignOut }: { user: SessionUser; onSignOut:
   const { ask } = useSession(pod?.id ?? null, speak)
   const { play, pause, restart, step } = useNarration(speak, stopSpeaking)
 
-  // Load catalogue, then auto-open the first pod.
+  // The shell chooses the lesson; this component owns only the transformer view.
   useEffect(() => {
-    fetchPods().then((list) => {
-      usePodStore.getState().setPods(list)
-      if (list.length) loadPod(list[0].id)
-    })
-  }, [])
-
-  const loadPod = useCallback(async (id: string) => {
-    usePodStore.getState().setLoadingPod(true)
-    try {
-      const p = await fetchPod(id)
-      usePodStore.getState().setPod(p)
-    } finally {
-      usePodStore.getState().setLoadingPod(false)
-    }
-  }, [])
+    usePodStore.getState().setPods(catalogue)
+    usePodStore.getState().setPod(lesson)
+  }, [lesson, catalogue])
 
   const onAsk = useCallback(
     async (text: string) => {
@@ -88,7 +113,7 @@ export default function App({ user, onSignOut }: { user: SessionUser; onSignOut:
               <button
                 key={p.id}
                 className={`pod-item ${pod?.id === p.id ? 'active' : ''}`}
-                onClick={() => loadPod(p.id)}
+                onClick={() => onSelect(p.id)}
               >
                 {p.title}
               </button>

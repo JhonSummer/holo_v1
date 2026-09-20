@@ -64,7 +64,10 @@ export interface MemoryState {
   events: ReadEvent[]
 }
 
-export interface ConversationTurn { role: 'user' | 'assistant'; content: string }
+export interface ConversationTurn {
+  role: 'user' | 'assistant'
+  content: string
+}
 
 /** Transient presentation, separate from the committed simulation state. */
 export interface VisualCue {

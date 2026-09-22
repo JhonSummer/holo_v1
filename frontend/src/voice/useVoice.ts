@@ -1,168 +1,162 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
 import { synthesizeSpeech, transcribeSpeech, fetchVoiceStatus } from '../api'
-import { browserListen, browserSpeak, playAudio } from './voicePlayback'
 
-/** Owns capture and speech lifetimes. Stop capture submits; cancel discards it. */
+// Voice I/O with graceful degradation:
+//  - TTS: backend ElevenLabs proxy if a key is set, else browser speechSynthesis.
+//  - STT: backend ElevenLabs proxy if available, else browser SpeechRecognition.
 export function useVoice() {
   const [recording, setRecording] = useState(false)
   const [serverVoice, setServerVoice] = useState({ tts: false, stt: false })
-  const audio = useRef<HTMLAudioElement | null>(null)
   const mediaRecorder = useRef<MediaRecorder | null>(null)
+  const chunks = useRef<Blob[]>([])
+  const audioEl = useRef<HTMLAudioElement | null>(null)
   const recognition = useRef<any>(null)
-  const speechRequest = useRef<AbortController | null>(null)
-  const captureRequest = useRef<AbortController | null>(null)
-  const selectedVoice = useRef<SpeechSynthesisVoice | null>(null)
+  // Playback outlives React: the Audio element is detached and speechSynthesis is
+  // global, so on unmount (e.g. sign-out) we must silence both and refuse new speech.
   const disposed = useRef(false)
 
-  const stopSpeaking = useCallback(() => {
-    speechRequest.current?.abort()
-    audio.current?.pause()
-    if ('speechSynthesis' in window) window.speechSynthesis.cancel()
-  }, [])
-  const cancelListening = useCallback(() => {
-    captureRequest.current?.abort()
-    if (mediaRecorder.current?.state === 'recording') mediaRecorder.current.stop()
-    recognition.current?.abort?.()
-    setRecording(false)
-  }, [])
   useEffect(() => {
     disposed.current = false
-    const status = new AbortController()
-    const timeout = setTimeout(() => status.abort(), 10000)
-    fetchVoiceStatus(status.signal)
-      .then((value) => {
-        if (!disposed.current) setServerVoice(value)
-      })
-      .finally(() => clearTimeout(timeout))
-    audio.current = new Audio()
-    const selectVoice = () => {
-      if (selectedVoice.current || !('speechSynthesis' in window)) return
-      const voices = window.speechSynthesis.getVoices()
-      selectedVoice.current =
-        voices.find((voice) => voice.lang.startsWith('en') && voice.localService) ??
-        voices.find((voice) => voice.lang.startsWith('en')) ??
-        voices[0] ??
-        null
-    }
-    selectVoice()
-    window.speechSynthesis?.addEventListener('voiceschanged', selectVoice)
+    fetchVoiceStatus().then(setServerVoice)
+    audioEl.current = new Audio()
     return () => {
       disposed.current = true
-      status.abort()
-      clearTimeout(timeout)
-      stopSpeaking()
-      cancelListening()
-      window.speechSynthesis?.removeEventListener('voiceschanged', selectVoice)
+      if ('speechSynthesis' in window) window.speechSynthesis.cancel()
+      audioEl.current?.pause()
+      if (mediaRecorder.current?.state === 'recording') mediaRecorder.current.stop()
+      recognition.current?.stop?.()
     }
-  }, [stopSpeaking, cancelListening])
+  }, [])
 
+  // --- speak: resolves once playback has finished (true if anything was spoken) ---
   const speak = useCallback(
     async (text: string): Promise<boolean> => {
       if (!text || disposed.current) return false
-      stopSpeaking()
-      const request = new AbortController()
-      speechRequest.current = request
-      const timer = setTimeout(() => request.abort(), 20000)
-      try {
-        if (serverVoice.tts) {
-          let url: string | null = null
+      if (serverVoice.tts) {
+        const url = await synthesizeSpeech(text)
+        const el = audioEl.current
+        if (url && el && !disposed.current) {
+          el.src = url
+          const finished = waitForAudioEnd(el, text)
           try {
-            url = await synthesizeSpeech(text, request.signal)
+            await el.play()
+            return await finished
           } catch {
-            if (request.signal.aborted) return false
-          }
-          if (url) {
-            clearTimeout(timer)
-            try {
-              if (disposed.current || request.signal.aborted) return false
-              if (audio.current && (await playAudio(audio.current, url, text, request.signal)))
-                return true
-            } finally {
-              URL.revokeObjectURL(url)
-            }
+            return disposed.current ? false : browserSpeak(text)
           }
         }
-        clearTimeout(timer)
-        if (disposed.current || request.signal.aborted) return false
-        return await browserSpeak(text, request.signal, selectedVoice.current)
-      } finally {
-        clearTimeout(timer)
       }
+      return disposed.current ? false : browserSpeak(text)
     },
-    [serverVoice.tts, stopSpeaking],
+    [serverVoice.tts],
   )
 
+  const stopSpeaking = useCallback(() => {
+    if ('speechSynthesis' in window) window.speechSynthesis.cancel()
+    if (audioEl.current && !audioEl.current.paused) audioEl.current.pause()
+  }, [])
+
+  // --- listen (returns a transcript) ---
   const listen = useCallback(async (): Promise<string> => {
-    cancelListening()
-    const request = new AbortController()
-    captureRequest.current = request
-    const { signal } = request
-    if (disposed.current) return ''
-    if (!serverVoice.stt || !navigator.mediaDevices?.getUserMedia)
-      return browserListen(setRecording, recognition, signal)
-    return new Promise((resolve) => {
-      let stream: MediaStream | null = null
-      let finished = false
-      const finish = (text = '') => {
-        if (finished) return
-        finished = true
-        clearTimeout(timeout)
-        signal.removeEventListener('abort', cancel)
-        stream?.getTracks().forEach((track) => track.stop())
-        if (!disposed.current) setRecording(false)
-        resolve(text)
-      }
-      const cancel = () => {
-        if (mediaRecorder.current?.state === 'recording') mediaRecorder.current.stop()
-        finish()
-      }
-      const timeout = setTimeout(() => request.abort(), 60000)
-      signal.addEventListener('abort', cancel, { once: true })
-      navigator.mediaDevices
-        .getUserMedia({ audio: true })
-        .then((acquired) => {
-          stream = acquired
-          // Permission may resolve long after cancel/unmount: never start a late recorder.
-          if (signal.aborted || disposed.current || finished) {
-            stream.getTracks().forEach((track) => track.stop())
-            finish()
-            return
+    // Prefer backend STT via MediaRecorder when available.
+    if (serverVoice.stt && navigator.mediaDevices?.getUserMedia) {
+      return new Promise<string>(async (resolve) => {
+        try {
+          const stream = await navigator.mediaDevices.getUserMedia({ audio: true })
+          const mr = new MediaRecorder(stream)
+          mediaRecorder.current = mr
+          chunks.current = []
+          mr.ondataavailable = (e) => chunks.current.push(e.data)
+          mr.onstop = async () => {
+            stream.getTracks().forEach((t) => t.stop())
+            setRecording(false)
+            const blob = new Blob(chunks.current, { type: 'audio/webm' })
+            const text = await transcribeSpeech(blob)
+            resolve(text ?? '')
           }
-          const recorder = new MediaRecorder(stream)
-          const chunks: Blob[] = []
-          mediaRecorder.current = recorder
-          recorder.ondataavailable = (event) => {
-            if (event.data.size) chunks.push(event.data)
-          }
-          recorder.onerror = () => finish()
-          recorder.onstop = async () => {
-            stream?.getTracks().forEach((track) => track.stop())
-            if (!disposed.current) setRecording(false)
-            if (signal.aborted || disposed.current) {
-              finish()
-              return
-            }
-            try {
-              finish(
-                (await transcribeSpeech(
-                  new Blob(chunks, { type: recorder.mimeType || 'audio/webm' }),
-                  signal,
-                )) ?? '',
-              )
-            } catch {
-              finish()
-            }
-          }
-          recorder.start()
+          mr.start()
           setRecording(true)
-        })
-        .catch(() => finish())
-    })
-  }, [serverVoice.stt, cancelListening])
+        } catch {
+          resolve(await browserListen(setRecording, recognition))
+        }
+      })
+    }
+    // Browser fallback (Web Speech API).
+    return browserListen(setRecording, recognition)
+  }, [serverVoice.stt])
 
   const stop = useCallback(() => {
-    if (mediaRecorder.current?.state === 'recording') mediaRecorder.current.stop()
-    recognition.current?.stop?.()
+    if (mediaRecorder.current && mediaRecorder.current.state === 'recording') {
+      mediaRecorder.current.stop()
+    }
+    if (recognition.current) {
+      recognition.current.stop()
+    }
   }, [])
-  return { speak, stopSpeaking, listen, stop, cancelListening, recording, serverVoice }
+
+  return { speak, stopSpeaking, listen, stop, recording, serverVoice }
+}
+
+// Generous upper bound on how long speaking `text` could take, so a stalled
+// utterance or audio element can never wedge callers awaiting completion.
+function speechCapMs(text: string) {
+  return 4000 + text.length * 120
+}
+
+function waitForAudioEnd(el: HTMLAudioElement, text: string): Promise<boolean> {
+  return new Promise((resolve) => {
+    const settle = (spoke: boolean) => {
+      window.clearTimeout(cap)
+      el.removeEventListener('ended', onDone)
+      el.removeEventListener('pause', onDone)
+      el.removeEventListener('error', onError)
+      resolve(spoke)
+    }
+    const onDone = () => settle(true)
+    const onError = () => settle(false)
+    const cap = window.setTimeout(onDone, speechCapMs(text))
+    el.addEventListener('ended', onDone)
+    el.addEventListener('pause', onDone)
+    el.addEventListener('error', onError)
+  })
+}
+
+function browserSpeak(text: string): Promise<boolean> {
+  if (!('speechSynthesis' in window)) return Promise.resolve(false)
+  return new Promise((resolve) => {
+    const u = new SpeechSynthesisUtterance(text)
+    u.rate = 1.02
+    u.pitch = 1.0
+    const cap = window.setTimeout(() => resolve(true), speechCapMs(text))
+    u.onend = () => {
+      window.clearTimeout(cap)
+      resolve(true)
+    }
+    u.onerror = () => {
+      window.clearTimeout(cap)
+      resolve(false)
+    }
+    window.speechSynthesis.cancel()
+    window.speechSynthesis.speak(u)
+  })
+}
+
+function browserListen(
+  setRecording: (b: boolean) => void,
+  ref: React.MutableRefObject<any>,
+): Promise<string> {
+  const SR = (window as any).SpeechRecognition || (window as any).webkitSpeechRecognition
+  if (!SR) return Promise.resolve('')
+  return new Promise<string>((resolve) => {
+    const rec = new SR()
+    ref.current = rec
+    rec.lang = 'en-US'
+    rec.interimResults = false
+    rec.maxAlternatives = 1
+    rec.onresult = (e: any) => resolve(e.results[0][0].transcript)
+    rec.onerror = () => resolve('')
+    rec.onend = () => setRecording(false)
+    rec.start()
+    setRecording(true)
+  })
 }

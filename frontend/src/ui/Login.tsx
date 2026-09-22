@@ -34,7 +34,8 @@ export default function Login({ onSignIn }: { onSignIn: (u: SessionUser) => void
 
   const onEnterSession = (lessonId = isMemoryLesson ? 'declarative-attention' : 'gpt2') => {
     const url = new URL(location.href)
-    url.searchParams.set('lesson', lessonId)
+    if (lessonId === 'gpt2') url.searchParams.delete('lesson')
+    else url.searchParams.set('lesson', lessonId)
     history.replaceState(null, '', url)
     firePulse.current()
     setBusy(true)

@@ -30,7 +30,8 @@ export default function App(props: AppProps) {
   const selectLesson = (id: string) => {
     if (id === selected || !catalogue.some(pod => pod.id === id)) return
     const url = new URL(location.href)
-    url.searchParams.set('lesson', id)
+    if (id === 'gpt2') url.searchParams.delete('lesson')
+    else url.searchParams.set('lesson', id)
     history.pushState(null, '', url)
     setSelected(id)
   }

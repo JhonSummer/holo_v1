@@ -26,7 +26,7 @@ const { packetRoutes, slotX, slotWidth, COLORS } = geometryModule
 const camera = await import(moduleUrl(new URL('camera.ts', base)))
 const { validateCommands } = await import(moduleUrl(new URL('tutor.ts', base)))
 const { CHECKPOINTS } = await import(moduleUrl(new URL('checkpoints.ts', base)))
-const voice = await import(moduleUrl(new URL('../../voice/voicePlayback.ts', base)))
+const voice = await import(moduleUrl(new URL('voicePlayback.ts', base)))
 const pod = JSON.parse(
   readFileSync(
     new URL('../../backend/app/pods/declarative-attention.json', import.meta.url),

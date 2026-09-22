@@ -9,7 +9,7 @@ import {
   type ReactNode,
 } from 'react'
 import type { PodSummary } from '../../types'
-import { useVoice } from '../../voice/useVoice'
+import { useLessonVoice } from './useLessonVoice'
 import type { AttentionMode, ConversationTurn, DeclarativeAttentionPod } from './types'
 import { nextRead, residentBytes, selectedChunkIds, stageReached } from './simulation'
 import useLessonPlayback from './useLessonPlayback'
@@ -44,7 +44,7 @@ export default function DeclarativeAttentionLesson({
   onSelect: (id: string) => void
   onSignOut: () => void
 }) {
-  const voice = useVoice()
+  const voice = useLessonVoice()
   const voiceEnabled = useRef(true)
   const speech = useRef(voice.speak)
   speech.current = voice.speak

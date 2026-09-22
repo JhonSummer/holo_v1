@@ -5,17 +5,19 @@ export default function MemoryInspector({
   state,
   config,
   animating = false,
+  spotlit = false,
 }: {
   state: MemoryState
   config: MemoryConfig
   animating?: boolean
+  spotlit?: boolean
 }) {
   const ready = stageReached(state, 'prefill')
   const read = nextRead(state, config)
   const actual = state.events.reduce((sum, event) => sum + event.readBytes, 0)
   const baseline = state.events.reduce((sum, event) => sum + event.fullBytes, 0)
   return (
-    <aside className="da-inspector">
+    <aside className={`da-inspector ${spotlit ? 'da-spotlit' : ''}`}>
       <div className="da-kicker">{animating ? 'AFTER THIS ANIMATION' : 'THE NEXT TOKEN'}</div>
       <div className="da-read-number">
         {ready ? `${(read.fraction * 100).toFixed(1)}%` : '—'}
@@ -63,7 +65,7 @@ export default function MemoryInspector({
             : 'No decode steps yet'}
         </strong>
         <small>
-          {formatBytes(actual)} / {formatBytes(baseline)} vanilla
+          {formatBytes(actual)} read vs {formatBytes(baseline)} with global attention
         </small>
       </div>
       <details>
@@ -77,7 +79,7 @@ export default function MemoryInspector({
           {config.bytes_per_value} bytes = {bytesPerToken(config).toLocaleString()} bytes per token.
         </p>
         <p>
-          Scaffold and previous response tokens are counted in every mode. Each click appends one
+          SYS and the reply so far are read in every mode. Each click appends one
           simulated token; output phrases are illustrative labels. Weight reads, caches and kernel
           overhead are not modeled.
         </p>

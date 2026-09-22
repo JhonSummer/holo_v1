@@ -1,4 +1,4 @@
-import type { MemoryConfig, VisualCue } from './types'
+import type { MemoryConfig, SpotlightTarget, VisualCue } from './types'
 
 export const COLORS = {
   weights: '#ffb35c',
@@ -14,6 +14,67 @@ export const slotX = (index: number, count = 4) => 64 + index * slotWidth(count)
 export const slotCenter = (index: number, count: number) =>
   slotX(index, count) + (slotWidth(count) - 8) / 2
 export type Point = [number, number]
+
+/** Scene part each region belongs to; a spotlight on a parent lights its children. */
+function parentOf(region: string): string | null {
+  if (/^c\d+$/.test(region)) return 'docs'
+  if (region === 'sys' || region === 'docs') return 'seats'
+  if (region === 'seats' || region === 'weights' || region === 'reply') return 'memory'
+  if (region === 'memory' || region === 'compute' || region === 'l2') return 'gpu'
+  return null
+}
+export function inSpotlight(region: string, spotlight: readonly string[] | null): boolean {
+  if (!spotlight) return true
+  for (let part: string | null = region; part; part = parentOf(part))
+    if (spotlight.includes(part)) return true
+  return false
+}
+/** Board-space frame [left, top, right, bottom] and front-face z for a spotlight target. */
+export function spotlightBounds(
+  target: SpotlightTarget,
+  config: MemoryConfig,
+): { box: [number, number, number, number]; z: number } | null {
+  const count = config.chunks.length
+  const seat = (i: number) => [slotX(i, count), 339, slotX(i, count) + slotWidth(count) - 9, 391]
+  const union = (boxes: number[][]) =>
+    [
+      Math.min(...boxes.map((b) => b[0])),
+      Math.min(...boxes.map((b) => b[1])),
+      Math.max(...boxes.map((b) => b[2])),
+      Math.max(...boxes.map((b) => b[3])),
+    ] as [number, number, number, number]
+  const chunk = /^c(\d+)$/.exec(target)
+  if (chunk) {
+    const index = config.chunks.findIndex((c) => c.id === Number(chunk[1]))
+    return index < 0 ? null : { box: seat(index + 1) as [number, number, number, number], z: 0.5 }
+  }
+  switch (target) {
+    case 'gpu':
+      return { box: [23, 37, 637, 441], z: 0.6 }
+    case 'compute':
+      return { box: [82, 90, 572, 198], z: 0.58 }
+    case 'l2':
+      return { box: [42, 237, 608, 271], z: 0.35 }
+    case 'memory':
+      return { box: [43, 289, 607, 439], z: 0.5 }
+    case 'weights':
+      return { box: [59, 296, 571, 324], z: 0.4 }
+    case 'seats':
+      return { box: union(Array.from({ length: count + 1 }, (_, i) => seat(i))), z: 0.5 }
+    case 'sys':
+      return { box: seat(0) as [number, number, number, number], z: 0.5 }
+    case 'docs':
+      return { box: union(Array.from({ length: count }, (_, i) => seat(i + 1))), z: 0.5 }
+    case 'reply':
+      return { box: [250, 404, 604, 426], z: 0.42 }
+    case 'pcie':
+      return { box: [630, 268, 718, 298], z: 0.14 }
+    case 'host':
+      return { box: [712, 35, 980, 443], z: 0.2 }
+    default:
+      return null
+  }
+}
 export interface PacketRoute {
   points: Point[]
   color: string

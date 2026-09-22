@@ -22,10 +22,33 @@ export type DACommand =
   | { op: 'daMode'; args: { mode: AttentionMode; chunks?: number[] } }
   | { op: 'daDecode'; args: { text: string } }
 
+/** Scene parts a spoken phrase can point at. `c<N>` is the seat of chunk N. */
+export type SpotlightTarget =
+  | 'gpu'
+  | 'compute'
+  | 'l2'
+  | 'memory'
+  | 'weights'
+  | 'seats'
+  | 'sys'
+  | 'docs'
+  | `c${number}`
+  | 'reply'
+  | 'pcie'
+  | 'host'
+  | 'meter'
+
+export interface NarrationCue {
+  text: string
+  spotlight: SpotlightTarget[]
+}
+
 export interface DABeat {
   id: string
   title: string
+  /** The cue texts joined; kept for chapters, tutor context and tests. */
   text: string
+  cues?: NarrationCue[]
   commands: DACommand[]
   hold_ms: number
   checkpoint?: 'read-set' | 'residency' | 'local'

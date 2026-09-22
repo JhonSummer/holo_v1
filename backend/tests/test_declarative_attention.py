@@ -45,6 +45,18 @@ def test_duplicate_chunk_is_rejected(data):
         Pod.model_validate(data)
 
 
+def test_beat_text_must_match_its_spoken_phrases(data):
+    data["narration"][0]["text"] = "Something the voice never says."
+    with pytest.raises(ValidationError):
+        Pod.model_validate(data)
+
+
+def test_unknown_spotlight_target_is_rejected(data):
+    data["narration"][0]["cues"][0]["spotlight"] = ["everything"]
+    with pytest.raises(ValidationError):
+        Pod.model_validate(data)
+
+
 def test_transformer_command_cannot_enter_da(data):
     data["narration"][0]["commands"] = [{"op": "runInference", "args": {"text": "hello"}}]
     with pytest.raises(ValidationError):

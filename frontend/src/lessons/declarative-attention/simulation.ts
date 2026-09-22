@@ -110,12 +110,12 @@ export function replayThrough(beats: DABeat[], index: number, config: MemoryConf
 
 export function describeState(state: MemoryState, config: MemoryConfig): string {
   if (!stageReached(state, 'prefill'))
-    return 'KV is not ready yet. Build the cache in Prefill before trying a decode step.'
+    return 'The KV cache is not built yet. Open chapter 4, Build the KV cache, to start experimenting.'
   const names = config.chunks
     .filter((chunk) => selectedChunkIds(state, config).includes(chunk.id))
     .map((chunk) => chunk.label)
-  const selected = names.length ? names.join(' + ') : 'no context chunks'
-  return `${state.mode === 'local' ? 'Local' : state.mode === 'focus' ? 'Focus' : 'Global'} reads the scaffold, ${selected}, and ${state.responseTokens} previous response token${state.responseTokens === 1 ? '' : 's'}. All context KV stays resident.`
+  const selected = names.length ? names.join(' + ') : 'no documents'
+  return `${state.mode === 'local' ? 'Local' : state.mode === 'focus' ? 'Focus' : 'Global'} reads SYS, ${selected}, and the ${state.responseTokens} reply token${state.responseTokens === 1 ? '' : 's'} so far. Every document stays in its seat.`
 }
 
 export function formatBytes(bytes: number): string {

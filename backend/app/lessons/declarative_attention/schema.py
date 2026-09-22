@@ -64,14 +64,32 @@ class DecodeCommand(StrictModel):
 DACommand = Annotated[StageCommand | ModeCommand | DecodeCommand, Field(discriminator="op")]
 
 
+SpotlightTarget = Annotated[
+    str,
+    Field(pattern=r"^(gpu|compute|l2|memory|weights|seats|sys|docs|reply|pcie|host|meter|c[1-9][0-9]?)$"),
+]
+
+
+class NarrationCue(StrictModel):
+    text: str = Field(min_length=1, max_length=200)
+    spotlight: list[SpotlightTarget] = Field(default_factory=list, max_length=6)
+
+
 class DABeat(StrictModel):
     id: str
     title: str
     text: str
+    cues: list[NarrationCue] | None = None
     commands: list[DACommand]
     hold_ms: int = Field(default=900, ge=0, le=10000)
     checkpoint: Literal["read-set", "residency", "local"] | None = None
     emphasis: bool = False
+
+    @model_validator(mode="after")
+    def text_matches_cues(self):
+        if self.cues and self.text != " ".join(cue.text for cue in self.cues):
+            raise ValueError(f"Beat {self.id}: text must equal its cue texts joined by spaces")
+        return self
 
 
 class ConversationTurn(StrictModel):

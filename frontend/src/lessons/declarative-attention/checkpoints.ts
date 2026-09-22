@@ -7,31 +7,30 @@ export interface Checkpoint {
 export const CHECKPOINTS: Record<string, Checkpoint> = {
   'read-set': {
     title: 'Predict the next read',
-    question: 'After declaring focus on C3, what must the next token read?',
+    question: 'The model declared focus on C3. What must the next word read?',
     choices: [
       {
         label: 'Only C3',
         correct: false,
-        feedback: 'C3 is selected, but the scaffold and previous response KV are still needed too.',
+        feedback: 'C3 is selected, but SYS (the instructions and question) and the reply so far are still needed.',
       },
       {
-        label: 'Scaffold + C3 + previous reply',
+        label: 'SYS + C3 + the reply so far',
         correct: true,
         feedback:
-          'Exactly. Focus filters the context chunks—not the scaffold or the reply so far. Watch those three sources next.',
+          'Exactly. Focus only filters the documents, never SYS or the reply so far. Watch those three sources next.',
       },
       {
-        label: 'Every chunk, just more slowly',
+        label: 'Every document, just more slowly',
         correct: false,
         feedback:
-          'The mask actually removes the other chunks from this read set. Their storage stays put, but their bytes are not read by this simulated attention step.',
+          'Focus really skips the other documents for this word. They stay in their seats, but their bytes are not read in this simulated step.',
       },
     ],
   },
   residency: {
     title: 'Did we free any VRAM?',
-    question:
-      'When a context block dims because it is masked, what happens to its cached keys and values?',
+    question: 'When a document dims because focus skips it, what happens to its KV cache?',
     choices: [
       {
         label: 'They moved to CPU RAM',
@@ -43,37 +42,37 @@ export const CHECKPOINTS: Record<string, Checkpoint> = {
         label: 'They were deleted to save memory',
         correct: false,
         feedback:
-          'No eviction occurs. Global can read them immediately because their KV is still resident.',
+          'Nothing is deleted. Global can read them again right away because their KV never left GPU memory.',
       },
       {
         label: 'They stayed in their original seats',
         correct: true,
         feedback:
-          'Yes. Read traffic fell; resident cache size did not. Global can reopen access without fetching anything back.',
+          'Yes. Read traffic fell; memory use did not. Global can read every document again without fetching anything back.',
       },
     ],
   },
   local: {
     title: 'Does local read nothing?',
-    question: 'Local excludes all magic chunks. Why is the next-read bar still above zero?',
+    question: 'Local skips all four documents. Why is the read bar still above zero?',
     choices: [
       {
-        label: 'Scaffold and previous reply remain readable',
+        label: 'SYS and the reply so far are still read',
         correct: true,
         feedback:
-          'Right. Local is not zero attention. It retains the instructions/question scaffold and the response generated so far.',
+          'Right. Local is not zero attention. It keeps reading the instructions and question (SYS) and the reply written so far.',
       },
       {
         label: 'The display has not refreshed',
         correct: false,
         feedback:
-          'The nonzero count is intentional: scaffold plus previous response KV are counted in every mode.',
+          'The bar is up to date. SYS and the reply so far are read in every mode, so it never reaches zero.',
       },
       {
-        label: 'All chunks secretly remain selected',
+        label: 'All documents secretly remain selected',
         correct: false,
         feedback:
-          'The context chunks really are excluded. Residency is not the same thing as membership in the read set.',
+          'The documents really are skipped. Being stored in GPU memory is not the same as being read.',
       },
     ],
   },

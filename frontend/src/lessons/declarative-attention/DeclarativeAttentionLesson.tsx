@@ -170,6 +170,7 @@ export default function DeclarativeAttentionLesson({
   }
   const checkpoint = lesson.checkpoint || practice
   const currentRead = nextRead(lesson.state, pod.scene.params)
+  const guiding = lesson.playing
   return (
     <main className="da-lesson">
       <header className="da-header">
@@ -251,36 +252,40 @@ export default function DeclarativeAttentionLesson({
                   ? '▶ Start lesson'
                   : '▶ Continue'}
           </button>
-          <button
-            disabled={!!checkpoint || lesson.completed}
-            onClick={() =>
-              action(() => {
-                lesson.step()
-              })
-            }
-          >
-            Step →
-          </button>
-          <button
-            onClick={() =>
-              action(() => {
-                setPractice(null)
-                lesson.replay()
-              })
-            }
-          >
-            Replay chapter
-          </button>
-          <button
-            onClick={() =>
-              action(() => {
-                setPractice(null)
-                lesson.restart()
-              })
-            }
-          >
-            ↺ Restart
-          </button>
+          {!guiding && (
+            <>
+              <button
+                disabled={!!checkpoint || lesson.completed}
+                onClick={() =>
+                  action(() => {
+                    lesson.step()
+                  })
+                }
+              >
+                Step →
+              </button>
+              <button
+                onClick={() =>
+                  action(() => {
+                    setPractice(null)
+                    lesson.replay()
+                  })
+                }
+              >
+                Replay chapter
+              </button>
+              <button
+                onClick={() =>
+                  action(() => {
+                    setPractice(null)
+                    lesson.restart()
+                  })
+                }
+              >
+                ↺ Restart
+              </button>
+            </>
+          )}
           <button
             onClick={() => {
               const next = !muted
@@ -295,7 +300,7 @@ export default function DeclarativeAttentionLesson({
           {(thinking || voice.recording) && <button onClick={interrupt}>Cancel</button>}
         </div>
       </section>
-      <section className="da-workspace" ref={sceneElement}>
+      <section className={`da-workspace ${ready ? '' : 'da-workspace-solo'}`} ref={sceneElement}>
         <div className="da-diagram-panel">
           <div className="da-stage-heading">
             <span>
@@ -307,21 +312,16 @@ export default function DeclarativeAttentionLesson({
               {ready ? 'KV RESIDENT' : 'KV EMPTY'} · {lesson.state.mode.toUpperCase()}
             </span>
           </div>
-          <div className="da-view-controls">
-            <button aria-pressed={view === 'spatial'} onClick={() => setView('spatial')}>
-              Spatial view
-            </button>
-            <button aria-pressed={view === 'diagram'} onClick={() => setView('diagram')}>
-              Diagram · low power
-            </button>
-            <span>
-              {lesson.declaration
-                ? `Output declares ${lesson.declaration}`
-                : lesson.visual
-                  ? `${lesson.visual.kind.toUpperCase()} phase`
-                  : 'Explore the GPU'}
-            </span>
-          </div>
+          {!guiding && (
+            <div className="da-view-controls">
+              <button aria-pressed={view === 'spatial'} onClick={() => setView('spatial')}>
+                Spatial view
+              </button>
+              <button aria-pressed={view === 'diagram'} onClick={() => setView('diagram')}>
+                Diagram · low power
+              </button>
+            </div>
+          )}
           {view === 'diagram' ? (
             <GpuStage {...sceneProps} />
           ) : (
@@ -334,24 +334,35 @@ export default function DeclarativeAttentionLesson({
               }
             >
               <Suspense fallback={<div className="da-loading">Opening the spatial GPU…</div>}>
-                <GpuSpatial {...sceneProps} reducedMotion={reducedMotion} />
+                <GpuSpatial
+                  {...sceneProps}
+                  reducedMotion={reducedMotion}
+                  spotlight={lesson.spotlight}
+                  guiding={guiding}
+                />
               </Suspense>
             </SpatialBoundary>
           )}
-          <div className="da-legend">
-            <span style={{ color: '#ffb35c' }}>● weights</span>
-            <span style={{ color: '#aeb8cb' }}>● scaffold</span>
-            <span style={{ color: '#e98772' }}>● context KV</span>
-            <span style={{ color: '#5dd39e' }}>● response KV</span>
-            <span>Packets = payload (weights, inputs or KV) · density & time illustrative</span>
-          </div>
+          {!guiding && (
+            <div className="da-legend">
+              <span style={{ color: '#ffb35c' }}>● weights</span>
+              <span style={{ color: '#aeb8cb' }}>● SYS · instructions + question</span>
+              <span style={{ color: '#e98772' }}>● documents C1–C4</span>
+              <span style={{ color: '#5dd39e' }}>● reply so far</span>
+              <span>Moving dots = data being read or written · timing illustrative</span>
+            </div>
+          )}
         </div>
-        <MemoryInspector
-          state={lesson.state}
-          config={pod.scene.params}
-          animating={!!lesson.visual}
-        />
+        {ready && (
+          <MemoryInspector
+            state={lesson.state}
+            config={pod.scene.params}
+            animating={!!lesson.visual}
+            spotlit={!!lesson.spotlight?.includes('meter')}
+          />
+        )}
       </section>
+      {ready && !guiding && (
       <section className="da-experiment" aria-label="Attention experiment">
         <div className="da-mode-buttons">
           {(['global', 'focus', 'local'] as AttentionMode[]).map((value) => (
@@ -395,12 +406,9 @@ export default function DeclarativeAttentionLesson({
         >
           Decode one token →
         </button>
-        {!ready && (
-          <span className="da-hint">Play the lesson, or jump to Prefill to experiment.</span>
-        )}
         {lesson.state.events.length >= 128 && (
           <span className="da-hint">
-            128-step experiment complete. Replay Prefill to start a fresh comparison.
+            128-step experiment complete. Replay chapter 4 to start a fresh comparison.
           </span>
         )}
         <button
@@ -424,6 +432,7 @@ export default function DeclarativeAttentionLesson({
           Check my understanding
         </button>
       </section>
+      )}
       {comparison && (
         <p className="da-comparison" role="status">
           Saved {comparison.mode}: {(comparison.fraction * 100).toFixed(1)}% read → now{' '}
@@ -446,6 +455,7 @@ export default function DeclarativeAttentionLesson({
           }}
         />
       )}
+      {!guiding && (
       <nav className="da-chapters" aria-label="Lesson chapters">
         {pod.narration.map((beat, index) => (
           <button
@@ -465,11 +475,9 @@ export default function DeclarativeAttentionLesson({
           </button>
         ))}
       </nav>
+      )}
+      {!guiding && lesson.beatIndex >= 0 && (
       <section className="da-narrator">
-        <p className="da-resume-hint">
-          Continue keeps your scene and proceeds with the guide. Replay chapter rebuilds its
-          starting state. Pausing settles the current visual step.
-        </p>
         <form
           className="da-ask"
           onSubmit={(event) => {
@@ -507,11 +515,14 @@ export default function DeclarativeAttentionLesson({
           </details>
         )}
       </section>
-      <footer className="da-footnote">
-        <span>PAPER RESULT, NOT THIS SIMULATION</span> Gemma-4-31B: 52.0% fewer attended tokens
-        during decoding · −1.27 percentage points accuracy across 15 tasks. Not a measured GPU
-        speedup.
-      </footer>
+      )}
+      {!guiding && (
+        <footer className="da-footnote">
+          <span>PAPER RESULT, NOT THIS SIMULATION</span> Gemma-4-31B: 52.0% fewer attended tokens
+          during decoding · −1.27 percentage points accuracy across 15 tasks. Not a measured GPU
+          speedup.
+        </footer>
+      )}
     </main>
   )
 }

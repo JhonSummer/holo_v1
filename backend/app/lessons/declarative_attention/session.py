@@ -12,6 +12,12 @@ async def answer(pod, query, scene):
         return await respond_async(pod, query, scene, get_settings())
 
 
+async def wait_for_disconnect(ws):
+    """Ignore stray frames (keepalives, double submits); only a disconnect cancels."""
+    while (await ws.receive())["type"] != "websocket.disconnect":
+        pass
+
+
 async def memory_session(ws, pod):
     message = await ws.receive_json()
     query = message.get("query", "")
@@ -21,7 +27,7 @@ async def memory_session(ws, pod):
         return
     await ws.send_json({"type": "thinking"})
     work = asyncio.create_task(answer(pod, query.strip(), message.get("scene", {})))
-    disconnected = asyncio.create_task(ws.receive())
+    disconnected = asyncio.create_task(wait_for_disconnect(ws))
     try:
         done, _ = await asyncio.wait({work, disconnected}, return_when=asyncio.FIRST_COMPLETED)
         if disconnected in done:

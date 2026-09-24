@@ -71,6 +71,19 @@ class Pod(BaseModel):
     narration: list[Beat | DABeat] = Field(default_factory=list)
     affordances: list[AffordanceDef] = Field(default_factory=list)
 
+    @model_validator(mode="before")
+    @classmethod
+    def parse_beats_for_scene(cls, data):
+        # A smart union would guess per beat (Beat ignores extra keys), so choose
+        # the beat model from the scene type instead.
+        if not isinstance(data, dict) or not isinstance(data.get("narration"), list):
+            return data
+        scene = data.get("scene")
+        scene_type = scene.get("type") if isinstance(scene, dict) else getattr(scene, "type", "transformer")
+        model = DABeat if scene_type == "gpu-memory" else Beat
+        narration = [model.model_validate(beat) if isinstance(beat, dict) else beat for beat in data["narration"]]
+        return {**data, "narration": narration}
+
     @model_validator(mode="after")
     def validate_lesson_commands(self):
         is_memory = isinstance(self.scene, MemoryScene)

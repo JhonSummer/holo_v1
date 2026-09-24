@@ -83,7 +83,12 @@ export function applyCommand(
         config.chunks.some((chunk) => chunk.id === id),
       )
       if (command.args.mode === 'focus' && chunks.length === 0) return state
-      return { ...state, mode: command.args.mode, focusedChunks: chunks }
+      // Global and local ignore the selection; keep it so Focus can restore it.
+      return {
+        ...state,
+        mode: command.args.mode,
+        focusedChunks: chunks.length ? chunks : state.focusedChunks,
+      }
     }
     case 'daDecode': {
       if (!stageReached(state, 'prefill') || state.events.length >= 128) return state

@@ -28,6 +28,14 @@ test('local retains scaffold and prior response', () => {
   const state = mode({ ...prefilled, responseTokens: 12 }, 'local')
   assert.equal(sim.nextRead(state, config).readTokens, 268)
 })
+test('global and local with no chunks keep the focus selection', () => {
+  const focused = mode(prefilled, 'focus', [2, 3])
+  for (const value of ['global', 'local']) {
+    const state = mode(focused, value)
+    assert.deepEqual(state.focusedChunks, [2, 3])
+    assert.deepEqual(mode(state, 'focus', state.focusedChunks).focusedChunks, [2, 3])
+  }
+})
 test('masking never changes resident bytes', () => {
   const size = sim.residentBytes(prefilled, config)
   for (const state of [mode(prefilled, 'focus', [3]), mode(prefilled, 'local'), mode(prefilled, 'global')]) assert.equal(sim.residentBytes(state, config), size)

@@ -130,7 +130,8 @@ export default function DeclarativeAttentionLesson({
       historyRef.current = [
         ...historyRef.current,
         { role: 'user', content: text.trim() },
-        { role: 'assistant', content: response.text },
+        // Command-only replies have no narration; history turns must be non-empty.
+        { role: 'assistant', content: response.text.trim() || '(Updated the scene.)' },
       ].slice(-12) as ConversationTurn[]
       setHistory(historyRef.current)
       await lesson.explore(response.commands, response.text)

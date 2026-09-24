@@ -150,3 +150,44 @@ def test_socket_disconnect_cancels_inflight_work(data, monkeypatch):
         assert cancelled.is_set()
 
     asyncio.run(scenario())
+
+
+def test_transformer_beat_with_extra_keys_stays_a_transformer_beat():
+    data = json.loads((PODS / "gpt2.json").read_text())
+    data["narration"].append({"id": "x", "title": "Intro", "text": "hi", "commands": []})
+    assert Pod.model_validate(data).narration[-1].id == "x"
+
+
+def test_socket_ignores_stray_frames_while_answering(data, monkeypatch):
+    import asyncio
+    from app.lessons.declarative_attention import session
+
+    async def scenario():
+        sent = []
+
+        async def answer(*args):
+            await asyncio.sleep(0.05)
+            return {"narration": "Done.", "commands": []}
+
+        class Socket:
+            frames = [{"type": "websocket.receive", "text": "{}"}]
+
+            async def receive_json(self):
+                return {"query": "why?", "scene": {}}
+
+            async def receive(self):
+                if self.frames:
+                    return self.frames.pop()
+                await asyncio.Future()
+
+            async def send_json(self, value):
+                sent.append(value["type"])
+
+            async def close(self):
+                sent.append("closed")
+
+        monkeypatch.setattr(session, "answer", answer)
+        await asyncio.wait_for(session.memory_session(Socket(), Pod.model_validate(data)), 2)
+        assert sent == ["thinking", "narration", "commands", "done", "closed"]
+
+    asyncio.run(scenario())
